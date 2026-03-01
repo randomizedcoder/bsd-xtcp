@@ -28,31 +28,6 @@ The Nix + Protobuf + Rust build pipeline is fully operational. A demo binary com
 - `btree_map(["."])` for deterministic serialization order
 - Generated code included via `include!` macro in `proto_gen::bsd_xtcp` module
 
-**Demo binary** (`src/main.rs`)
-- Creates a `BatchMessage` with:
-  - `CollectionMetadata`: timestamp, hostname, platform=MACOS, schedule="fast", interval=1s
-  - ESTABLISHED socket: 127.0.0.1:52301 -> 93.184.216.34:443, cwnd/RTT/buffers/pid
-  - TIME_WAIT socket: 127.0.0.1:48920 -> 10.0.0.5:80, 2MSL timer
-  - `SystemSummary` with state bucket counts
-- Serializes with `serde_json::to_string_pretty` and prints to stdout
-
-**Cargo dependencies** (minimal for phase 1)
-- Runtime: prost 0.13, prost-types 0.13, pbjson 0.7, pbjson-types 0.7, serde 1, serde_json 1
-- Build: prost-build 0.13, pbjson-build 0.7
-- Not yet added: tokio, clap, libc, nix, thiserror, tracing, hostname
-
-### Verified operations
-
-| Command | Result |
-|---------|--------|
-| `nix develop -c cargo build` | Compiles proto + Rust successfully |
-| `nix develop -c cargo run` | Prints JSON BatchMessage to stdout |
-| `nix develop -c cargo clippy --all-targets -- -D warnings` | Zero warnings |
-| `nix develop -c cargo fmt --check` | Clean |
-| `nix build` | Full reproducible release build |
-| `./result/bin/bsd-xtcp` | Nix-built binary runs correctly |
-| `nix build .#proto` | Proto validates independently |
-
 ### Issues found and resolved
 
 | Issue | Root cause | Fix |
@@ -63,45 +38,153 @@ The Nix + Protobuf + Rust build pipeline is fully operational. A demo binary com
 | `cargoLock.lockFile` eval error | String interpolation `"${src}/..."` not valid for Nix path | Changed to path concatenation `src + "/Cargo.lock"` |
 | `.cargo/` registry staged in git | `CARGO_HOME=.cargo` + `git add -A` | Added `/.cargo` to .gitignore |
 
-### File inventory
+## Phase 2: Sysctl Reader (Complete)
+
+**`src/sysctl.rs`** — Shared sysctl reader with platform cfg-gating.
+
+- `read_sysctl(name)` — two-call pattern (get size, allocate +25% headroom, read)
+- `read_pcblist_validated(name, max_retries)` — reads sysctl, parses xinpgen header/trailer, retries if `xig_gen` mismatch between header and trailer
+- `read_clock_hz()` — reads `kern.clockrate` struct, returns `hz` field for RTT tick conversion
+- `read_os_version()` — reads `kern.osproductversion` for metadata
+- All real implementations `#[cfg(any(target_os = "macos", target_os = "freebsd"))]`
+- Stubs return `Err(SysctlError::UnsupportedPlatform)` on Linux
+- `SysctlError` enum with `thiserror` derives: `NameToMib`, `ReadFailed`, `GenerationMismatch`, `TooSmall`, `UnsupportedPlatform`
+
+## Phase 3: macOS pcblist_n Parser (Complete)
+
+**`src/platform/macos_layout.rs`** — Offset constants isolated for easy correction.
+
+- Record kind tags: `XSO_SOCKET=0x001`, `XSO_RCVBUF=0x002`, `XSO_SNDBUF=0x004`, `XSO_STATS=0x008`, `XSO_INPCB=0x010`, `XSO_TCPCB=0x020`
+- Named offset constants for each struct (e.g. `XSOCKET_N_SO_LAST_PID_OFFSET`, `XTCPCB_N_T_SRTT_OFFSET`)
+- `roundup64()` for XNU 8-byte record alignment
+- `TCP_RTT_SHIFT=3`, `TCP_RTTVAR_SHIFT=2`, `INP_IPV4=0x1`, `INP_IPV6=0x2`
+
+**`src/platform/macos.rs`** — Pure parsing functions (testable on all platforms).
+
+- `parse_pcblist_n(buf, hz)` — walks tagged records, returns `Vec<RawSocketRecord>`
+- `ConnectionAccumulator` — collects fields from tagged records for one connection:
+  - `parse_xsocket_n()` — socket_id (so_pcb), uid, pid, effective_pid
+  - `parse_rcvbuf()` / `parse_sndbuf()` — buffer cc + hiwat
+  - `parse_xinpcb_n()` — IP addrs (v4/v6 based on inp_vflag), ports (network byte order), inp_gencnt
+  - `parse_xtcpcb_n()` — state, flags, cwnd, ssthresh, maxseg, windows, RTT (raw ticks), seq nums, window scale, dupacks, rxtshift, starttime
+  - `build()` — tags data source, returns `RawSocketRecord`
+- RTT conversion: `((t_srtt >> TCP_RTT_SHIFT) * 1_000_000) / hz` for microseconds
+- Byte-reading helpers: `read_u8_at`, `read_u16_be_at`, `read_i32_at`, `read_u32_at`, `read_u64_at`
+- New `XSO_SOCKET` record = new connection group; emit previous when complete
+- Unknown kinds skipped gracefully (forward compat)
+
+**`src/platform/mod.rs`** — Error types and platform dispatch.
+
+- `CollectError` enum: `Sysctl`, `Parse`, `Truncated`, `UnknownKind`, `UnsupportedPlatform`
+- `CollectionResult { records, generation, collection_duration_ns }`
+- `collect_tcp_sockets()` — cfg-dispatches to `macos::collect()` or `stub::collect()`
+
+**`src/platform/stub.rs`** — Linux CI stub returning `Err(CollectError::UnsupportedPlatform)`.
+
+### Design decisions
+
+- **Cursor-based parsing, not `#[repr(C)]` structs** — offsets in `macos_layout.rs` are more robust across XNU versions and testable with synthetic byte blobs on Linux CI.
+- **`macos.rs` always compiled** — only `collect()` (which calls sysctl) is cfg-gated. The pure `parse_pcblist_n()` function and all tests run on all platforms.
+
+## Phase 4: Record Types + Proto Conversion (Complete)
+
+**`src/record.rs`** — Internal intermediate types.
+
+- `enum IpAddr { V4([u8; 4]), V6([u8; 16]) }` — raw byte representation
+- `struct RawSocketRecord` — ~35 fields with `Option<T>`, all in native Rust types with normalized units (RTT in microseconds)
+- Bridge between platform parser and proto conversion
+
+**`src/convert.rs`** — Proto conversion functions.
+
+- `kernel_state_to_proto(i32) -> i32` — macOS TCPS_* (0-10) maps to proto enum (1-11), offset by +1
+- `ip_version_to_proto(u8) -> i32`, `ip_addr_to_bytes(&IpAddr) -> Vec<u8>`
+- `raw_to_proto(&RawSocketRecord) -> TcpSocketRecord` — maps all fields, sets `sources = [MacosPcblistN]`
+- `build_metadata(generation, duration, count, seq, interval_ms) -> CollectionMetadata` — timestamp, hostname, platform, os_version
+- `build_summary_from_records(&[TcpSocketRecord], interval_ms) -> SystemSummary` — counts states using BTreeMap
+- `build_batch()` — assembles a full `BatchMessage` from raw records
+
+## Phase 5: JSON Output (Complete)
+
+**`src/output/mod.rs`** — Output abstraction.
+
+- `OutputError` enum: `Serialization`, `Io`
+- `trait OutputSink { emit(&mut self, &BatchMessage), flush(&mut self), format_name() }`
+
+**`src/output/json.rs`** — JSON Lines sink.
+
+- `JsonSink<W: Write>` wrapping `BufWriter<W>`
+- `emit()` uses `serde_json::to_writer` (or `to_writer_pretty` with `--pretty`)
+- One JSON object per line (JSON Lines format)
+
+## Phase 6: CLI + Collection Loop (Complete)
+
+**`src/config.rs`** — Minimal hand-rolled CLI config.
+
+- `Config { interval: Duration, count: u64, pretty: bool }`
+- `Config::from_args()` — parses `--interval SECS`, `--count N`, `--pretty`, `--help`
+- No `clap` dependency
+
+**`src/main.rs`** — Synchronous collection loop.
+
+- Parse config, create `JsonSink` on stdout
+- Loop: `collect_tcp_sockets()` -> `build_batch()` -> `sink.emit()` -> sleep
+- Stop after `--count` passes (0 = infinite)
+- Uses `anyhow::Result` for top-level error handling
+- No tokio — single loop with `std::thread::sleep`
+
+### Dependencies added
+
+- `libc = "0.2"` — sysctl FFI calls
+- `thiserror = "2"` — typed error enums in library code
+- `anyhow = "1"` — error handling in main.rs
+- `hostname = "0.4"` — hostname detection for metadata
+
+Not added (intentionally): tokio, clap, tracing, byteorder, nix crate.
+
+## Verified operations
+
+| Command | Result |
+|---------|--------|
+| `nix develop -c cargo build` | Compiles on Linux (stubs) and macOS |
+| `nix develop -c cargo clippy --all-targets -- -D warnings` | Zero warnings |
+| `nix develop -c cargo fmt --check` | Clean |
+| `nix develop -c cargo test` | 8 tests pass (state mapping, conversion, parser with synthetic byte buffers) |
+| On macOS: `cargo run -- --count 1` | Prints one JSON BatchMessage with live socket data |
+| On macOS: `cargo run -- --count 3 --interval 2` | Prints 3 batches, 2 seconds apart |
+
+## File inventory
 
 ```
-flake.nix                 # Top-level Nix orchestration
-flake.lock                # Pinned flake inputs
-nix/
-  constants.nix           # Centralized config
-  package.nix             # Rust binary build
-  proto.nix               # Proto validation target
-  checks.nix              # Clippy, fmt, test checks
-  shell.nix               # Dev shell
-proto/
-  tcp_stats.proto          # Full protobuf schema (78 fields)
-Cargo.toml                # Minimal phase-1 dependencies
-Cargo.lock                # Committed lockfile
-build.rs                  # Proto code generation
 src/
-  lib.rs                  # Library root
-  proto_gen.rs            # Include generated prost + pbjson code
-  main.rs                 # Demo binary
+  lib.rs                       # Library root — 7 module declarations
+  main.rs                      # Collection loop with anyhow error handling
+  proto_gen.rs                 # Include generated prost + pbjson code
+  config.rs                    # CLI arg parser (--interval, --count, --pretty)
+  record.rs                    # RawSocketRecord intermediate type
+  sysctl.rs                    # Sysctl reader with cfg-gated BSD/Linux
+  convert.rs                   # RawSocketRecord -> proto TcpSocketRecord
+  platform/
+    mod.rs                     # CollectError, CollectionResult, dispatch
+    macos.rs                   # pcblist_n parser (always compiled, collect() cfg-gated)
+    macos_layout.rs            # XNU struct offset constants
+    stub.rs                    # Linux stub
+  output/
+    mod.rs                     # OutputSink trait, OutputError
+    json.rs                    # JSON Lines sink
 ```
 
-## Next: Phase 2 — Sysctl Reader
+## Known risks and next steps
 
-The next step is `src/sysctl.rs`: a shared sysctl reader with retry-on-growth that works on both macOS and FreeBSD. This is the foundation for the `pcblist_n` parser in phase 3.
+- **Struct offsets**: The `macos_layout.rs` offsets are derived from XNU headers. They must be validated on a real macOS host by comparing parsed output to `netstat -an`. First run may need offset corrections — the isolated layout file makes this a single-file fix.
+- **IPv4-mapped IPv6**: Some sockets use `::ffff:a.b.c.d` with vflag=0x2. Handle in convert.rs later if needed.
+- **LISTEN sockets**: No remote addr. Parser handles all-zeros gracefully.
 
-Modules not yet implemented:
+### Remaining phases
 
 | Module | Phase | Purpose |
 |--------|-------|---------|
-| `sysctl.rs` | 2 | Shared sysctl reader with retry-on-growth |
-| `platform/macos.rs` | 3 | pcblist_n tagged record parser |
-| `record.rs` | 4 | Internal `RawSocketRecord` type |
-| `convert.rs` | 4 | RawSocketRecord to proto TcpSocketRecord |
-| `output/json.rs` | 5 | JSON Lines output sink |
-| `config.rs` | 6 | CLI args (clap), schedule configuration |
-| `scheduler.rs` | 6 | Multi-schedule timer loop |
-| `collector.rs` | 6 | Collection orchestrator |
-| `delta.rs` | 7 | Per-connection delta tracking |
-| `platform/macos.rs` (enrich) | 8 | TCP_CONNECTION_INFO getsockopt |
-| `output/binary.rs` | 9 | Length-delimited binary protobuf |
-| System summary | 10 | tcp.stats sysctl + SystemSummary |
+| `delta.rs` | 7 | Per-connection delta tracking (retransmit rate, byte deltas) |
+| `platform/macos.rs` (enrich) | 8 | TCP_CONNECTION_INFO getsockopt for richer per-socket data |
+| `output/binary.rs` | 9 | Length-delimited binary protobuf output |
+| System summary enrichment | 10 | tcp.stats sysctl for system-wide counters in SystemSummary |
+| FreeBSD platform | 11-15 | pcblist parser, tcp_stats_kld kernel module, kern.file join |

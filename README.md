@@ -11,10 +11,11 @@ The tool reads `sysctl net.inet.tcp.pcblist` (FreeBSD) or `net.inet.tcp.pcblist_
 Key properties:
 
 - **Cross-platform:** unified protobuf schema with 78 fields covering both macOS and FreeBSD; platform-specific fields are simply absent when not applicable
-- **Configurable intervals:** user-defined named schedules from 10ms to 24h (e.g. `--schedule fast=1s --schedule detail=30s`)
-- **Multiple output formats:** JSON Lines, length-delimited binary protobuf, human-readable stdout
+- **Configurable intervals:** `--interval SECS` and `--count N` for collection control
+- **Multiple output formats:** JSON Lines (current), length-delimited binary protobuf (planned)
 - **Low overhead:** targets < 1% CPU and < 10 MB RSS on a developer machine with ~500 sockets
-- **Rust implementation:** async runtime (tokio), protobuf via prost, Nix-based build system
+- **Rust implementation:** synchronous collection loop, protobuf via prost, Nix-based build system
+- **CI-friendly:** pure parsing functions compile and test on Linux; sysctl calls are cfg-gated
 
 The full design is documented in [freebsd-tcp-stats-design.md](freebsd-tcp-stats-design.md).
 
@@ -32,19 +33,45 @@ The full design is documented in [freebsd-tcp-stats-design.md](freebsd-tcp-stats
 | [design/07-nix-build-system.md](design/07-nix-build-system.md) | Nix flake build system, security tooling, dev shell |
 | [design/08-protobuf-schema.md](design/08-protobuf-schema.md) | Protobuf schema, Rust architecture, traits, dependencies |
 
+## Usage
+
+On macOS:
+
+```sh
+# Single collection pass, pretty-printed
+cargo run -- --count 1 --pretty
+
+# 3 passes at 2-second intervals
+cargo run -- --count 3 --interval 2
+
+# Continuous collection (Ctrl-C to stop)
+cargo run
+```
+
+Options:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--interval SECS` | 1 | Collection interval in seconds |
+| `--count N` | 0 (infinite) | Number of collection passes |
+| `--pretty` | off | Pretty-print JSON output |
+| `--help` | | Show usage |
+
+On Linux the binary compiles but returns an `UnsupportedPlatform` error at runtime (sysctl calls are macOS/FreeBSD only). The parser and conversion logic are fully testable on Linux via unit tests with synthetic byte buffers.
+
 ## Status
 
-Phase 1 (build pipeline) is complete. The Nix flake, protobuf schema, and a minimal Rust binary are wired together end-to-end. The binary compiles the proto, populates a sample `BatchMessage`, and prints it as JSON.
+Phases 1-6 are complete. The tool reads live TCP socket data from the macOS kernel via `net.inet.tcp.pcblist_n`, parses the tagged binary stream, converts to the protobuf schema, and outputs JSON Lines to stdout.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1 - Build pipeline | Done | Nix flake + proto + prost-build + pbjson serde + demo binary |
-| 2 - Sysctl reader | Not started | Shared sysctl reader with retry-on-growth |
-| 3 - macOS pcblist_n parser | Not started | Tagged record parser for `net.inet.tcp.pcblist_n` |
-| 4 - Record conversion | Not started | `RawSocketRecord` to proto `TcpSocketRecord` |
-| 5 - JSON output | Not started | JSON Lines output sink via pbjson |
-| 6 - CLI + scheduler | Not started | clap CLI, multi-schedule timer loop, collection orchestrator |
-| 7-10 | Not started | Delta tracking, getsockopt enrichment, binary output, system summary |
+| 1 - Build pipeline | Done | Nix flake + proto + prost-build + pbjson serde |
+| 2 - Sysctl reader | Done | `read_sysctl()`, `read_pcblist_validated()`, `read_clock_hz()` with retry + Linux stubs |
+| 3 - macOS pcblist_n parser | Done | Cursor-based tagged record parser with `ConnectionAccumulator` |
+| 4 - Record conversion | Done | `RawSocketRecord` intermediate type + proto conversion |
+| 5 - JSON output | Done | `JsonSink` with `OutputSink` trait, JSON Lines + pretty-print |
+| 6 - CLI + collection loop | Done | Hand-rolled `--interval`/`--count`/`--pretty` args, synchronous loop |
+| 7-10 | Not started | Delta tracking, getsockopt enrichment, binary output, system summary enrichment |
 | 11-15 | Not started | FreeBSD platform support |
 
 See [status/macos.md](status/macos.md) for detailed implementation status.
