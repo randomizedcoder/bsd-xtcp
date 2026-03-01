@@ -1,91 +1,40 @@
-use bsd_xtcp::proto_gen::bsd_xtcp::{
-    BatchMessage, CollectionMetadata, DataSource, IpVersion, Platform, StateBucket, SystemSummary,
-    TcpSocketRecord, TcpState,
-};
+use anyhow::{Context, Result};
+use bsd_xtcp::config::Config;
+use bsd_xtcp::convert;
+use bsd_xtcp::output::json::JsonSink;
+use bsd_xtcp::output::OutputSink;
+use bsd_xtcp::platform;
 
-fn main() {
-    let metadata = CollectionMetadata {
-        timestamp_ns: 1_700_000_000_000_000_000,
-        hostname: "sample-host.local".into(),
-        platform: Platform::Macos.into(),
-        os_version: "macOS 15.2".into(),
-        interval_ms: 1000,
-        schedule_name: "fast".into(),
-        data_sources: vec![DataSource::MacosPcblistN.into()],
-        collection_duration_ns: 2_500_000,
-        pcblist_generation: Some(42),
-        batch_sequence: 1,
-        tool_version: "bsd-xtcp 0.1.0".into(),
-    };
+fn main() -> Result<()> {
+    let config = Config::from_args().map_err(|e| anyhow::anyhow!("{e}"))?;
 
-    let established = TcpSocketRecord {
-        local_addr: vec![127, 0, 0, 1],
-        remote_addr: vec![93, 184, 216, 34],
-        local_port: 52301,
-        remote_port: 443,
-        ip_version: IpVersion::IpVersion4.into(),
-        state: TcpState::Established.into(),
-        snd_cwnd: Some(65535),
-        snd_ssthresh: Some(1048576),
-        snd_wnd: Some(131072),
-        rcv_wnd: Some(131072),
-        maxseg: Some(1460),
-        rtt_us: Some(15000),
-        rttvar_us: Some(3000),
-        rto_us: Some(200_000),
-        snd_buf_used: Some(0),
-        snd_buf_hiwat: Some(131072),
-        rcv_buf_used: Some(4096),
-        rcv_buf_hiwat: Some(131072),
-        pid: Some(1234),
-        uid: Some(501),
-        command: Some("curl".into()),
-        sources: vec![DataSource::MacosPcblistN.into()],
-        ..Default::default()
-    };
+    let stdout = std::io::stdout().lock();
+    let mut sink = JsonSink::new(stdout, config.pretty);
+    let mut sequence: u64 = 0;
+    let interval_ms = config.interval.as_millis() as u32;
 
-    let time_wait = TcpSocketRecord {
-        local_addr: vec![127, 0, 0, 1],
-        remote_addr: vec![10, 0, 0, 5],
-        local_port: 48920,
-        remote_port: 80,
-        ip_version: IpVersion::IpVersion4.into(),
-        state: TcpState::TimeWait.into(),
-        timer_2msl_ms: Some(30000),
-        snd_buf_used: Some(0),
-        snd_buf_hiwat: Some(131072),
-        rcv_buf_used: Some(0),
-        rcv_buf_hiwat: Some(131072),
-        pid: Some(5678),
-        uid: Some(501),
-        command: Some("firefox".into()),
-        sources: vec![DataSource::MacosPcblistN.into()],
-        ..Default::default()
-    };
+    loop {
+        sequence += 1;
 
-    let summary = SystemSummary {
-        timestamp_ns: 1_700_000_000_000_000_000,
-        interval_ms: 1000,
-        total_sockets: 2,
-        state_counts: vec![
-            StateBucket {
-                state: TcpState::Established.into(),
-                count: 1,
-            },
-            StateBucket {
-                state: TcpState::TimeWait.into(),
-                count: 1,
-            },
-        ],
-        ..Default::default()
-    };
+        let result = platform::collect_tcp_sockets().context("failed to collect TCP sockets")?;
 
-    let batch = BatchMessage {
-        metadata: Some(metadata),
-        records: vec![established, time_wait],
-        summary: Some(summary),
-    };
+        let batch = convert::build_batch(
+            &result.records,
+            result.generation,
+            result.collection_duration_ns,
+            sequence,
+            interval_ms,
+        );
 
-    let json = serde_json::to_string_pretty(&batch).expect("failed to serialize BatchMessage");
-    println!("{json}");
+        sink.emit(&batch).context("failed to write output")?;
+        sink.flush().context("failed to flush output")?;
+
+        if config.count > 0 && sequence >= config.count {
+            break;
+        }
+
+        std::thread::sleep(config.interval);
+    }
+
+    Ok(())
 }
