@@ -1,0 +1,471 @@
+syntax = "proto3";
+
+package bsd_xtcp;
+
+// ─── Enums ───────────────────────────────────────────────────────────
+
+// BSD TCP finite state machine states.
+// Values match TCPS_* constants from <netinet/tcp_fsm.h>.
+enum TcpState {
+  TCP_STATE_UNKNOWN     = 0;   // Not yet determined or parse error
+  TCP_STATE_CLOSED      = 1;   // TCPS_CLOSED
+  TCP_STATE_LISTEN      = 2;   // TCPS_LISTEN
+  TCP_STATE_SYN_SENT    = 3;   // TCPS_SYN_SENT
+  TCP_STATE_SYN_RECEIVED = 4;  // TCPS_SYN_RECEIVED
+  TCP_STATE_ESTABLISHED = 5;   // TCPS_ESTABLISHED
+  TCP_STATE_CLOSE_WAIT  = 6;   // TCPS_CLOSE_WAIT
+  TCP_STATE_FIN_WAIT_1  = 7;   // TCPS_FIN_WAIT_1
+  TCP_STATE_CLOSING     = 8;   // TCPS_CLOSING
+  TCP_STATE_LAST_ACK    = 9;   // TCPS_LAST_ACK
+  TCP_STATE_FIN_WAIT_2  = 10;  // TCPS_FIN_WAIT_2
+  TCP_STATE_TIME_WAIT   = 11;  // TCPS_TIME_WAIT
+}
+
+// Platform the collection was performed on.
+enum Platform {
+  PLATFORM_UNKNOWN = 0;
+  PLATFORM_MACOS   = 1;
+  PLATFORM_FREEBSD = 2;
+}
+
+// IP version for address interpretation.
+enum IpVersion {
+  IP_VERSION_UNKNOWN = 0;
+  IP_VERSION_4       = 1;  // local_addr/remote_addr are 4 bytes
+  IP_VERSION_6       = 2;  // local_addr/remote_addr are 16 bytes
+}
+
+// Data sources used to populate fields in a record or batch.
+enum DataSource {
+  DATA_SOURCE_UNKNOWN           = 0;
+  DATA_SOURCE_MACOS_PCBLIST_N   = 1;  // sysctl net.inet.tcp.pcblist_n
+  DATA_SOURCE_MACOS_TCP_CONN_INFO = 2;  // getsockopt(TCP_CONNECTION_INFO)
+  DATA_SOURCE_FREEBSD_PCBLIST   = 3;  // sysctl net.inet.tcp.pcblist
+  DATA_SOURCE_FREEBSD_TCP_INFO  = 4;  // getsockopt(TCP_INFO)
+  DATA_SOURCE_FREEBSD_KLD       = 5;  // /dev/tcpstats kernel module
+  DATA_SOURCE_KERN_FILE         = 6;  // sysctl kern.file (PID mapping)
+}
+
+// ─── Collection Metadata ─────────────────────────────────────────────
+
+// Attached to every BatchMessage. Describes the collection context.
+message CollectionMetadata {
+  // Timestamp when collection started (nanoseconds since Unix epoch).
+  uint64 timestamp_ns = 1;
+
+  // Machine hostname.
+  string hostname = 2;
+
+  // Platform this collection was performed on.
+  Platform platform = 3;
+
+  // OS version string (e.g. "macOS 15.2" or "FreeBSD 14.1-RELEASE").
+  string os_version = 4;
+
+  // Configured collection interval for this schedule (milliseconds).
+  // Range: 10..86_400_000.
+  uint32 interval_ms = 5;
+
+  // User-defined schedule name (e.g. "fast", "detail", "summary").
+  string schedule_name = 6;
+
+  // Data sources consulted during this collection pass.
+  repeated DataSource data_sources = 7;
+
+  // Wall-clock duration of this collection pass (nanoseconds).
+  // Useful for performance monitoring of the tool itself.
+  uint64 collection_duration_ns = 8;
+
+  // pcblist generation counter. If header != trailer, snapshot was
+  // inconsistent and was retried. This records the final consistent value.
+  optional uint64 pcblist_generation = 9;
+
+  // Monotonically increasing sequence number per schedule.
+  // Consumers use this to detect gaps (missed collections).
+  uint64 batch_sequence = 10;
+
+  // Tool version string (e.g. "bsd-xtcp 0.1.0").
+  string tool_version = 11;
+}
+
+// ─── Per-Socket Record ───────────────────────────────────────────────
+
+// Unified TCP socket record covering fields from both macOS and FreeBSD.
+// Platform-specific fields are simply absent (proto3 optional) when not
+// applicable. ~80% of fields are shared across platforms.
+message TcpSocketRecord {
+
+  // ── Connection Identity (fields 1–6) ──
+
+  // Local IP address: 4 bytes (IPv4) or 16 bytes (IPv6).
+  bytes local_addr = 1;
+
+  // Remote IP address: 4 bytes (IPv4) or 16 bytes (IPv6).
+  bytes remote_addr = 2;
+
+  // Local port (host byte order).
+  uint32 local_port = 3;
+
+  // Remote port (host byte order).
+  uint32 remote_port = 4;
+
+  // IP version, disambiguates addr field lengths.
+  IpVersion ip_version = 5;
+
+  // Kernel socket address — stable within a sample, used as join key
+  // for PID mapping on FreeBSD (matches xso_so / xf_data).
+  optional uint64 socket_id = 6;
+
+  // ── TCP State (fields 7–8) ──
+
+  // TCP finite state machine state.
+  TcpState state = 7;
+
+  // Raw TCP flags bitmask (t_flags from xtcpcb / xtcpcb_n).
+  optional uint32 tcp_flags = 8;
+
+  // ── Congestion Control (fields 9–15) ──
+
+  // Congestion window (bytes).
+  optional uint32 snd_cwnd = 9;
+
+  // Slow start threshold (bytes).
+  optional uint32 snd_ssthresh = 10;
+
+  // Send window (bytes).
+  optional uint32 snd_wnd = 11;
+
+  // Receive window (bytes).
+  optional uint32 rcv_wnd = 12;
+
+  // Maximum segment size (bytes).
+  optional uint32 maxseg = 13;
+
+  // Congestion control algorithm name (e.g. "cubic", "newreno").
+  // FreeBSD: xt_cc from xtcpcb. macOS: not available via pcblist_n.
+  optional string cc_algo = 14;
+
+  // TCP stack name (e.g. "freebsd", "rack").
+  // FreeBSD only: xt_stack from xtcpcb.
+  optional string tcp_stack = 15;
+
+  // ── RTT (fields 16–21) ──
+  // All RTT values normalized to microseconds.
+  // macOS t_srtt: (t_srtt >> TCP_RTT_SHIFT) * 1_000_000 / hz
+  // macOS TCP_CONNECTION_INFO tcpi_srtt: ms × 1000
+  // FreeBSD TCP_INFO: already microseconds
+
+  // Smoothed RTT (microseconds).
+  optional uint32 rtt_us = 16;
+
+  // RTT variance (microseconds).
+  optional uint32 rttvar_us = 17;
+
+  // Retransmission timeout (microseconds).
+  optional uint32 rto_us = 18;
+
+  // Minimum observed RTT (microseconds).
+  // macOS pcblist_n: t_rttmin. FreeBSD KLD: tcpi_rttmin.
+  optional uint32 rtt_min_us = 19;
+
+  // Most recent (instantaneous) RTT (microseconds).
+  // macOS TCP_CONNECTION_INFO only: tcpi_rttcur × 1000.
+  optional uint32 rtt_cur_us = 20;
+
+  // Number of RTT updates (macOS pcblist_n: t_rttupdated).
+  optional uint32 rtt_update_count = 21;
+
+  // ── Sequence Numbers (fields 22–26) ──
+
+  // Next send sequence number.
+  optional uint32 snd_nxt = 22;
+
+  // Oldest unacknowledged send sequence number.
+  optional uint32 snd_una = 23;
+
+  // Highest sequence number sent.
+  optional uint32 snd_max = 24;
+
+  // Next expected receive sequence number.
+  optional uint32 rcv_nxt = 25;
+
+  // Peer's most recently advertised window edge.
+  optional uint32 rcv_adv = 26;
+
+  // ── Window Scale (fields 27–28) ──
+
+  // Send window scale factor (0–14).
+  optional uint32 snd_wscale = 27;
+
+  // Receive window scale factor (0–14).
+  optional uint32 rcv_wscale = 28;
+
+  // ── Counters (fields 29–36) ──
+
+  // Retransmitted packets (cumulative).
+  optional uint32 rexmit_packets = 29;
+
+  // Out-of-order packets received (cumulative).
+  optional uint32 ooo_packets = 30;
+
+  // Zero-window probes sent (cumulative).
+  optional uint32 zerowin_probes = 31;
+
+  // Consecutive duplicate ACKs received.
+  // macOS pcblist_n: t_dupacks. FreeBSD KLD: tcpi_dupacks.
+  optional uint32 dupacks = 32;
+
+  // Distinct SACK blocks received.
+  // FreeBSD KLD/TCP_INFO only: tcpi_rcv_numsacks.
+  optional uint32 sack_blocks = 33;
+
+  // DSACK bytes received. FreeBSD pcblist only.
+  optional uint32 dsack_bytes = 34;
+
+  // DSACK packets received. FreeBSD pcblist only.
+  optional uint32 dsack_packets = 35;
+
+  // Retransmit backoff exponent (t_rxtshift).
+  // macOS pcblist_n: t_rxtshift. FreeBSD: via KLD/TCP_INFO.
+  optional uint32 rxt_shift = 36;
+
+  // ── Byte/Packet Counters (fields 37–43) ──
+  // macOS TCP_CONNECTION_INFO provides per-connection byte/packet counters.
+  // FreeBSD does not have these in any interface.
+
+  // Total bytes sent (macOS TCP_CONNECTION_INFO: tcpi_txbytes).
+  optional uint64 tx_bytes = 37;
+
+  // Total bytes received (macOS TCP_CONNECTION_INFO: tcpi_rxbytes).
+  optional uint64 rx_bytes = 38;
+
+  // Total packets sent (macOS TCP_CONNECTION_INFO: tcpi_txpackets).
+  optional uint64 tx_packets = 39;
+
+  // Total packets received (macOS TCP_CONNECTION_INFO: tcpi_rxpackets).
+  optional uint64 rx_packets = 40;
+
+  // Retransmitted bytes (macOS TCP_CONNECTION_INFO: tcpi_txretransmitbytes).
+  optional uint64 retransmit_bytes = 41;
+
+  // Out-of-order bytes received (macOS TCP_CONNECTION_INFO: tcpi_rxoutoforderbytes).
+  optional uint64 ooo_bytes = 42;
+
+  // Retransmitted packets (macOS TCP_CONNECTION_INFO: tcpi_txretransmitpackets).
+  // Separate from rexmit_packets (field 29) which comes from pcblist.
+  optional uint64 retransmit_packets_total = 43;
+
+  // ── Timers (fields 44–49) ──
+  // All timer values in milliseconds. 0 = timer not running.
+
+  // Retransmit timer remaining (ms).
+  optional uint32 timer_rexmt_ms = 44;
+
+  // Persist timer remaining (ms).
+  optional uint32 timer_persist_ms = 45;
+
+  // Keepalive timer remaining (ms).
+  optional uint32 timer_keep_ms = 46;
+
+  // 2MSL (TIME_WAIT) timer remaining (ms).
+  optional uint32 timer_2msl_ms = 47;
+
+  // Delayed ACK timer remaining (ms).
+  optional uint32 timer_delack_ms = 48;
+
+  // Time since last data received (ms).
+  optional uint32 idle_time_ms = 49;
+
+  // ── Buffers (fields 50–53) ──
+
+  // Send buffer bytes currently in use.
+  optional uint32 snd_buf_used = 50;
+
+  // Send buffer high watermark (max capacity).
+  optional uint32 snd_buf_hiwat = 51;
+
+  // Receive buffer bytes currently in use.
+  optional uint32 rcv_buf_used = 52;
+
+  // Receive buffer high watermark (max capacity).
+  optional uint32 rcv_buf_hiwat = 53;
+
+  // ── Process Attribution (fields 54–58) ──
+
+  // Process ID owning this socket.
+  // macOS: so_last_pid from xsocket_n (built into pcblist_n).
+  // FreeBSD: joined from kern.file via socket_id.
+  optional int32 pid = 54;
+
+  // Effective PID (macOS only: so_e_pid from xsocket_n).
+  // Differs from pid when socket has been transferred between processes.
+  optional int32 effective_pid = 55;
+
+  // User ID owning the socket.
+  optional uint32 uid = 56;
+
+  // File descriptor number (from kern.file join or known FD).
+  optional int32 fd = 57;
+
+  // Process command name (e.g. "firefox", "curl").
+  optional string command = 58;
+
+  // ── ECN (fields 59–61) ──
+
+  // ECN flags bitmask.
+  // FreeBSD: xt_ecn from xtcpcb.
+  optional uint32 ecn_flags = 59;
+
+  // ECN CE (Congestion Experienced) marks delivered to upper layer.
+  // FreeBSD KLD/TCP_INFO: tcpi_delivered_ce.
+  optional uint32 ecn_ce_delivered = 60;
+
+  // ECN CE marks received.
+  // FreeBSD KLD/TCP_INFO: tcpi_received_ce.
+  optional uint32 ecn_ce_received = 61;
+
+  // ── Negotiated Options (field 62) ──
+
+  // Bitmask of negotiated TCP options.
+  // Bit 0: Timestamps, Bit 1: SACK, Bit 2: Window Scale,
+  // Bit 3: ECN, Bit 4: TFO.
+  // FreeBSD KLD/TCP_INFO: tcpi_options.
+  // macOS TCP_CONNECTION_INFO: tcpi_options (TCPCI_OPT_*).
+  optional uint32 negotiated_options = 62;
+
+  // ── TFO — TCP Fast Open (fields 63–64) ──
+
+  // macOS TCP_CONNECTION_INFO TFO state as a 15-bit bitmask.
+  // Bits: cookie_req, cookie_rcv, syn_loss, syn_data_sent,
+  //       syn_data_acked, syn_data_rcv, cookie_req_rcv, cookie_sent,
+  //       cookie_invalid, cookie_wrong, no_cookie_rcv,
+  //       heuristics_disable, send_blackhole, recv_blackhole,
+  //       onebyte_proxy.
+  // macOS only. FreeBSD has a single-bit TFO indicator.
+  optional uint32 tfo_state_macos = 63;
+
+  // Whether TFO was negotiated (FreeBSD: tcpi_options & TCPI_OPT_TFO).
+  optional bool tfo_negotiated = 64;
+
+  // ── Loss / Reorder Detection (fields 65–66) ──
+
+  // Connection is currently in loss recovery.
+  // macOS TCP_CONNECTION_INFO: TCPCI_FLAG_LOSSRECOVERY.
+  optional bool in_loss_recovery = 65;
+
+  // Reordering has been detected on this connection.
+  // macOS TCP_CONNECTION_INFO: TCPCI_FLAG_REORDERING_DETECTED.
+  optional bool reordering_detected = 66;
+
+  // ── TLP — Tail Loss Probe (fields 67–68) ──
+  // FreeBSD KLD/TCP_INFO only.
+
+  // Total tail loss probes sent.
+  optional uint32 tlp_probes_sent = 67;
+
+  // Total TLP bytes sent.
+  optional uint64 tlp_bytes_sent = 68;
+
+  // ── Platform-Specific (fields 69–71) ──
+
+  // UDP encapsulation port (FreeBSD: xt_encaps_port).
+  optional uint32 encaps_port = 69;
+
+  // Inpcb generation count — monotonically increasing per-connection,
+  // used for change detection (FreeBSD: inp_gencnt).
+  optional uint64 inp_gencnt = 70;
+
+  // Connection start time in seconds (macOS: t_starttime from xtcpcb_n).
+  optional uint32 start_time_secs = 71;
+
+  // ── Computed Deltas (fields 72–77) ──
+  // These are computed by the tool's delta tracker, not read from kernel.
+  // Only present when a previous sample exists for this connection.
+
+  // Retransmit packets this interval.
+  optional int32 delta_rexmit_packets = 72;
+
+  // OOO packets this interval.
+  optional int32 delta_ooo_packets = 73;
+
+  // Zero-window probes this interval.
+  optional int32 delta_zerowin = 74;
+
+  // Time since this connection was first observed by the tool (ms).
+  optional uint64 connection_age_ms = 75;
+
+  // Bytes sent this interval (macOS only, from TX_CONNECTION_INFO deltas).
+  optional int64 delta_tx_bytes = 76;
+
+  // Bytes received this interval (macOS only, from TCP_CONNECTION_INFO deltas).
+  optional int64 delta_rx_bytes = 77;
+
+  // ── Source Tracking (field 78) ──
+
+  // Which data sources contributed to this record's fields.
+  repeated DataSource sources = 78;
+}
+
+// ─── System-Wide Summary ─────────────────────────────────────────────
+
+// Per-state socket count entry for the SystemSummary.
+message StateBucket {
+  TcpState state = 1;
+  uint32 count = 2;
+}
+
+// System-wide TCP statistics for a collection interval.
+message SystemSummary {
+  // Timestamp when this summary was collected (nanoseconds since epoch).
+  uint64 timestamp_ns = 1;
+
+  // Collection interval (milliseconds).
+  uint32 interval_ms = 2;
+
+  // Total TCP sockets observed in this sample.
+  uint32 total_sockets = 3;
+
+  // Socket count per TCP state.
+  repeated StateBucket state_counts = 4;
+
+  // ── Delta Counters (from sysctl net.inet.tcp.stats) ──
+  // All deltas computed over the interval_ms window.
+
+  optional uint64 delta_conn_attempts = 5;    // tcps_connattempt
+  optional uint64 delta_accepts = 6;          // tcps_accepts
+  optional uint64 delta_connects = 7;         // tcps_connects
+  optional uint64 delta_drops = 8;            // tcps_drops
+  optional uint64 delta_snd_total_packets = 9;  // tcps_sndtotal
+  optional uint64 delta_snd_bytes = 10;       // tcps_sndbyte
+  optional uint64 delta_snd_rexmit_packets = 11;  // tcps_sndrexmitpack
+  optional uint64 delta_snd_rexmit_bytes = 12;    // tcps_sndrexmitbyte
+  optional uint64 delta_rcv_total_packets = 13;    // tcps_rcvtotal
+  optional uint64 delta_rcv_bytes = 14;       // tcps_rcvbyte
+  optional uint64 delta_rcv_dup_packets = 15; // tcps_rcvduppack
+  optional uint64 delta_rcv_badsum = 16;      // tcps_rcvbadsum
+
+  // ── Computed Rates ──
+
+  // Retransmit rate: delta_snd_rexmit_packets / delta_snd_total_packets.
+  // Absent if delta_snd_total_packets is zero.
+  optional double retransmit_rate = 17;
+
+  // Duplicate rate: delta_rcv_dup_packets / delta_rcv_total_packets.
+  // Absent if delta_rcv_total_packets is zero.
+  optional double duplicate_rate = 18;
+}
+
+// ─── Top-Level Wrapper ───────────────────────────────────────────────
+
+// Top-level message emitted once per collection pass.
+// Each scheduled collection produces one BatchMessage.
+message BatchMessage {
+  // Collection context (always present).
+  CollectionMetadata metadata = 1;
+
+  // Per-socket records collected in this pass.
+  repeated TcpSocketRecord records = 2;
+
+  // System-wide summary (present when the schedule collects system stats).
+  optional SystemSummary summary = 3;
+}

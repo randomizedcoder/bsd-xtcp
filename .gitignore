@@ -53,3 +53,12 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Rust
+/target
+/.cargo
+*.rs.bk
+
+# Nix
+/result
+/result-*
