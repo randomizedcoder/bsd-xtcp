@@ -31,3 +31,20 @@ The full design is documented in [freebsd-tcp-stats-design.md](freebsd-tcp-stats
 | [design/06-field-comparison.md](design/06-field-comparison.md) | Performance budget, field comparison matrix, open questions |
 | [design/07-nix-build-system.md](design/07-nix-build-system.md) | Nix flake build system, security tooling, dev shell |
 | [design/08-protobuf-schema.md](design/08-protobuf-schema.md) | Protobuf schema, Rust architecture, traits, dependencies |
+
+## Status
+
+Phase 1 (build pipeline) is complete. The Nix flake, protobuf schema, and a minimal Rust binary are wired together end-to-end. The binary compiles the proto, populates a sample `BatchMessage`, and prints it as JSON.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 - Build pipeline | Done | Nix flake + proto + prost-build + pbjson serde + demo binary |
+| 2 - Sysctl reader | Not started | Shared sysctl reader with retry-on-growth |
+| 3 - macOS pcblist_n parser | Not started | Tagged record parser for `net.inet.tcp.pcblist_n` |
+| 4 - Record conversion | Not started | `RawSocketRecord` to proto `TcpSocketRecord` |
+| 5 - JSON output | Not started | JSON Lines output sink via pbjson |
+| 6 - CLI + scheduler | Not started | clap CLI, multi-schedule timer loop, collection orchestrator |
+| 7-10 | Not started | Delta tracking, getsockopt enrichment, binary output, system summary |
+| 11-15 | Not started | FreeBSD platform support |
+
+See [status/macos.md](status/macos.md) for detailed implementation status.
