@@ -41,7 +41,7 @@ Protocol Buffers or MessagePack encoding of the same record structure. Defined i
 
 ### 7.1 Language: Rust
 
-Consistent with the Linux agent codebase. Shared traits and serialization code between Linux and FreeBSD agents. Key crates:
+Consistent with the Linux agent codebase. Shared traits and serialization code between Linux and FreeBSD agents. The build system is Nix-based with a pinned Rust 1.93.1 toolchain and integrated security analysis tools — see [Section 13–17: Nix Build System](07-nix-build-system.md) for the full build and tooling design. Key crates:
 
 - `libc` — raw sysctl bindings, struct definitions
 - `nix` — higher-level POSIX wrappers

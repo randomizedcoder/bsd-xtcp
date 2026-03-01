@@ -32,6 +32,8 @@ This document specifies the design of a FreeBSD (and macOS) userspace tool that 
 | 8 | [macOS Portability Considerations](#8-macos-portability-considerations) | [design/04-macos-portability.md](design/04-macos-portability.md) |
 | 11 | [Kernel Module: `tcp_stats_kld`](#11-kernel-module-tcp_stats_kld) | [design/05-kernel-module.md](design/05-kernel-module.md) |
 | 9–10, 12 | [Performance Budget, Field Comparison, and Open Questions](#9-10-12-performance-budget-field-comparison-and-open-questions) | [design/06-field-comparison.md](design/06-field-comparison.md) |
+| 13–17 | [Nix Build System](#13-17-nix-build-system) | [design/07-nix-build-system.md](design/07-nix-build-system.md) |
+| 18–23 | [Protobuf Schema and Cross-Platform Rust Architecture](#18-23-protobuf-schema-and-cross-platform-rust-architecture) | [design/08-protobuf-schema.md](design/08-protobuf-schema.md) |
 
 ---
 
@@ -80,3 +82,19 @@ A FreeBSD kernel loadable module that exposes `/dev/tcpstats`, providing system-
 The performance budget targets < 1% CPU and < 10 MB RSS on a developer machine with ~500 sockets (~1.5ms/s overhead). A comprehensive field comparison matrix shows coverage across Linux `tcp_info` (~60 fields), FreeBSD `xtcpcb` (~20), FreeBSD KLD (~35), macOS `pcblist_n` (~25), and macOS `TCP_CONNECTION_INFO`. The remaining gap vs. Linux (pacing rate, delivery rate, busy time, per-connection byte counters) reflects genuine differences in the BSD TCP stacks. Open questions cover DTrace integration, kqueue-based scheduling, jail awareness, local dashboard protocol, kernel module upstreaming, and sequence number exposure considerations.
 
 **[Read full section →](design/06-field-comparison.md)**
+
+---
+
+## 13–17. Nix Build System
+
+The build system uses a Nix flake with modular `.nix` files under a `nix/` directory. The Rust binary is built using `rustPlatform.buildRustPackage` (standard cargo) with the toolchain pinned to Rust 1.93.1 via `rust-overlay`. Protobuf compilation is handled by `prost-build` in `build.rs` with `protoc` provided by the Nix build environment. The flake provides four targets: `nix build` (binary), `nix build .#proto` (proto validation), `nix flake check` (clippy, fmt, tests, cargo-audit, cargo-deny, doc), and `nix develop` (dev shell with the full security analysis toolkit — cargo-audit, cargo-deny, cargo-fuzz, cargo-geiger, cargo-vet, cargo-nextest, cargo-tarpaulin, cargo-machete, cargo-udeps). Fuzz targets cover the highest-risk code: sysctl binary parsers for `pcblist`, `kern.file`, and macOS `pcblist_n`.
+
+**[Read full section →](design/07-nix-build-system.md)**
+
+---
+
+## 18–23. Protobuf Schema and Cross-Platform Rust Architecture
+
+The protobuf schema (`proto/tcp_stats.proto`) defines a unified `TcpSocketRecord` message with 78 fields covering both macOS and FreeBSD, using proto3 `optional` to distinguish "not available on this platform" from "genuinely zero." All RTT values are normalized to microseconds, all timers to milliseconds, and IP addresses are stored as `bytes` (4 or 16) for efficiency. A `BatchMessage` wraps per-socket records and an optional `SystemSummary` with `CollectionMetadata` that includes a configurable `interval_ms` and `schedule_name` — replacing the fixed 4-tier polling model with user-defined schedules (10ms–24h). The Rust architecture uses a `PlatformCollector` trait for platform abstraction (~80% shared code), an `OutputSink` trait for format abstraction (JSON Lines, binary protobuf, human-readable), and a `tokio`-based multi-schedule timer loop. Development follows a macOS-first implementation order since `pcblist_n` provides the richest single-sysctl dataset.
+
+**[Read full section →](design/08-protobuf-schema.md)**
