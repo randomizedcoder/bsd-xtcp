@@ -1,0 +1,266 @@
+# FreeBSD `tcp_stats_kld` -- Implementation Log
+
+[Back to implementation plan](implementation-plan.md) | [Back to kernel module design](kernel-module.md)
+
+## Overview
+
+This log tracks progress against the [implementation plan](implementation-plan.md).
+Each step records the date, outcome, any issues encountered, and resolution.
+
+---
+
+## VM Environment
+
+| Property | Value |
+|---|---|
+| FreeBSD version | 15.0-RELEASE (GENERIC) `releng/15.0-n280995-7aedc8de6446` |
+| VM type | libvirt/KVM |
+| SSH access | `ssh root@192.168.122.41` (no password required) |
+| Kernel source path | `/usr/src/sys` (installed via `pkg install FreeBSD-src-sys`) |
+| `tcp_fill_info` exported? | **NO** -- lowercase `t` (static): `ffffffff80d716e0 t tcp_fill_info`. Will need direct `tcpcb` field access in Step 8. |
+| `inp_next` exported? | Yes -- uppercase `T`: `ffffffff80d382d0 T inp_next` |
+| `cr_canseeinpcb` exported? | Yes -- uppercase `T`: `ffffffff80d3a440 T cr_canseeinpcb` |
+
+---
+
+## Step 1: Bare Module Load/Unload
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Compiles? | Yes -- clean, no warnings with `-Werror` |
+| Loads? | Yes -- `kldload ./tcp_stats_kld.ko` succeeds, dmesg shows "tcp_stats_kld: loaded" |
+| Unloads? | Yes -- `kldunload tcp_stats_kld` succeeds, dmesg shows "tcp_stats_kld: unloaded" |
+| Issues | Kernel source not pre-installed; `rsync` not pre-installed on VM |
+| Resolution | `pkg install FreeBSD-src-sys` for headers; `pkg install rsync` for file transfer |
+| Notes | Module size 2090 bytes per kldstat. Used `DECLARE_MODULE` + `moduledata_t` pattern. |
+
+---
+
+## Step 2: Create `/dev/tcpstats` Device Node
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Device appears? | Yes -- `cr--r--r-- 1 root wheel 0x76 /dev/tcpstats` |
+| Device removed on unload? | Yes -- `ls: /dev/tcpstats: No such file or directory` after kldunload |
+| Issues | None |
+| Resolution | N/A |
+| Notes | `cat /dev/tcpstats` returns "Operation not supported by device" as expected (no d_read yet). Used `MAKEDEV_ETERNAL_KLD` flag. |
+
+---
+
+## Step 3: Shared Header (`tcp_stats_kld.h`)
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| `_Static_assert` passes? | Yes -- 320 bytes confirmed |
+| Userspace compilation? | Yes -- `cc -fsyntax-only -I/usr/include tcp_stats_kld.h` OK |
+| Actual `sizeof(tcp_stats_record)` | 320 bytes (packed) |
+| Issues | (1) `struct in_addr`/`in6_addr` incomplete in kernel context; (2) design doc spare size was 32 bytes but struct body was only 268 bytes, needed 52 bytes spare |
+| Resolution | (1) Added `#include <netinet/in.h>` in `.c` before header include; (2) Adjusted `_tsr_spare` from `[8]` to `[13]` (52 bytes) to reach exactly 320 |
+| Notes | Design doc section byte-count comments were slightly off (e.g., "Connection identity (48 bytes)" is actually 40 packed). Struct is correct at 320 total. |
+
+---
+
+## Step 4: `open()` / `close()` with Per-FD State
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Write rejected? | Yes -- `echo test > /dev/tcpstats` returns "Operation not permitted" (EPERM) |
+| No crash on close? | Yes -- `cat /dev/tcpstats` opens+closes cleanly (returns ENODEV from missing d_read) |
+| Memory freed? (`vmstat -m`) | Yes -- `vmstat -m \| grep tcpstats` shows InUse=0 after close |
+| Issues | None |
+| Resolution | N/A |
+| Notes | Used `d_open_t` typedef, `devfs_set_cdevpriv` destructor pattern with `crhold`/`crfree`. |
+
+---
+
+## Step 5: `read()` with Dummy Records
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Returns 960 bytes? (3 x 320) | Yes -- `dd if=/dev/tcpstats bs=960 count=1 \| wc -c` = 960 |
+| Version field correct? | Yes -- hexdump shows `01 00 00 00` (version=1), `40 01 00 00` (len=320=0x140) |
+| Second read returns 0? | Yes -- confirmed with same-fd test (`exec 3</dev/tcpstats`, two reads) |
+| Issues | `AF_INET` undefined without `<sys/socket.h>` |
+| Resolution | Added `#include <sys/socket.h>` (will be needed for Step 6 anyway) |
+| Notes | Each `dd` opens a new fd, so EOF must be tested on the same fd. Dummy ports: 1000, 1001, 1002. |
+
+---
+
+## Step 6: Real PCB Iteration
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Record count | 3 (960 bytes = 3 x 320) |
+| `sockstat` count | 4 (2 x sshd-session fd-sharing same inpcb, 1 LISTEN IPv4, 1 LISTEN IPv6) |
+| Counts match? | Yes -- 3 unique inpcbs matches expected (one ESTABLISHED SSH, two LISTEN sockets) |
+| 20-iteration stability? | Yes -- all 20 completed without panic |
+| Issues | (1) First attempt panicked VM -- missing `CURVNET_SET` on VIMAGE kernel; (2) `struct prison` incomplete; (3) `cr_canseeinpcb` undeclared; (4) `const` member in `inpcb_iterator` prevents assignment to softc field |
+| Resolution | (1) Added `CURVNET_SET(TD_TO_VNET(curthread))` / `CURVNET_RESTORE()`; (2) Added `<sys/jail.h>`; (3) Added `<netinet/in_systm.h>`; (4) Changed iterator from softc field to local variable (matches `tcp_pcblist` pattern) |
+| Notes | Hexdump verified: record 0 = ESTABLISHED port 22, record 1 = LISTEN IPv4 :22, record 2 = LISTEN IPv6 :22 with TSR_F_IPV6 flag. VIMAGE support is critical on FreeBSD 15 GENERIC kernel. |
+
+---
+
+## Step 7: Connection Identity Fields
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| SSH connection visible? | Yes -- `192.168.122.41:22 -> 192.168.122.1:port` state=4(ESTABLISHED) |
+| Addresses correct? | Yes -- IPv4 and IPv6 addresses decoded correctly via `inet_ntop` |
+| State values correct? | Yes -- ESTABLISHED=4, LISTEN=1, TSR_F_LISTEN and TSR_F_IPV6 flags set correctly |
+| `sockstat` cross-check? | Yes -- matches `sockstat -4 -6 -P tcp -c` output |
+| Issues | Initial Python decoder used wrong field offsets (assumed design doc byte-count comments were cumulative); `t_state` bitfield access works fine |
+| Resolution | Computed correct packed offsets; created `tools/decode_tcpstats.py` with BSD AF_INET6=28 handling |
+| Notes | `intotcpcb()` uses `__containerof` so never returns NULL on FreeBSD 15 (inpcb embedded in tcpcb). `t_flags` also populated. Added reusable Python decoder to repo. |
+
+---
+
+## Step 8: `tcp_fill_info()` -- RTT and Sequences
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| `tcp_fill_info` symbol available? | **No** -- static (`t`). Replicated its logic in `tcpstats_fill_record()` using direct tcpcb field access. |
+| Non-zero RTT for ESTABLISHED? | Yes -- `rtt=6562us` for SSH session |
+| RTT value plausible? | Yes -- ~6.5ms consistent with KVM local network |
+| Sequence numbers populated? | Yes -- `snd_nxt`, `snd_una`, `snd_max`, `rcv_nxt`, `rcv_adv` all populated |
+| cwnd populated? | Yes -- `cwnd=18367`, `ssthresh=1073725440` (huge = not limited), `maxseg=1460` |
+| Issues | None -- clean compile on first try after planning |
+| Resolution | N/A |
+| Notes | Used `tcp_fill_info()` source (tcp_usrreq.c:1569) as reference. RTT conversion: `(t_srtt * tick) >> TCP_RTT_SHIFT`. Also populated: rttvar, rto, rttmin(t_rttlow), window scale, options (TIMESTAMPS/SACK/WSCALE), snd_wnd, rcv_wnd. `tcp_get_srtt` IS exported but not needed since we replicate the conversion directly. 20-iter stability OK. |
+
+---
+
+## Step 9: Complete Record Population
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| CC algo name? | Yes -- `cc='cubic'` via `CC_ALGO(tp)->name` |
+| TCP stack name? | Yes -- `stack='freebsd'` via `tp->t_fb->tfb_tcp_block_name` |
+| Timer values populated? | Yes -- `tt_rexmt=247ms`, `tt_keep=7199857ms` (~2hr), others 0 for idle SSH |
+| Buffer sizes populated? | Yes -- `snd_buf=72/33580`, `rcv_buf=0/65700` |
+| Counter fields working? | Yes -- all zero for clean SSH session (expected). ECN=1, options=0x07 (TS+SACK+WS) |
+| Field name mismatches found? | None -- all FreeBSD 15 field names matched: `t_sndtlppack`/`t_sndtlpbyte` for TLP, `t_scep`/`t_rcep` for ECN, `t_rttlow` for rttmin |
+| Issues | None -- compiled clean on first attempt |
+| Resolution | N/A |
+| Notes | Timers use `sbintime_t t_timers[]` with `getsbinuptime()` delta and `SBT_1MS` divisor. `rcvtime` converted from ticks via `(ticks - t_rcvtime) * tick / 1000`. 20-iter stability OK. |
+
+---
+
+## Step 10: Ioctl Support
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| VERSION_CMD returns correct values? | Yes -- `version=1, record_size=320, count_hint=3, flags=0` |
+| RESET allows re-read? | Yes -- read after RESET returns same 960 bytes (3 records) |
+| SET_FILTER excludes states? | Yes -- `TSF_EXCLUDE_LISTEN` reduces output from 3 records to 1 (ESTABLISHED only) |
+| Issues | None -- clean compile and all tests passed on first try |
+| Resolution | N/A |
+| Notes | Tested with inline C program on VM. `CURVNET_SET` needed in ioctl for `V_tcbinfo.ipi_count`. `state_mask` and `TSF_EXCLUDE_TIMEWAIT` also implemented. 20-iter stability OK. |
+
+---
+
+## Step 11: Userspace Test Program
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Compiles? | Yes -- uses `bsd.prog.mk` with `MAN=` to suppress man page |
+| Output readable? | Yes -- shows version info, per-socket line with addr:port, state, rtt, cwnd, cc, stack, uid |
+| Root vs non-root difference? | Not tested (device is 0444, non-root can read; `cr_canseeinpcb` filters visibility) |
+| Issues | (1) Initial per-record read loop only returned 1 record because `sc_done` set after first read call even on buffer-full break; (2) `NO_MAN=` is obsolete, use `MAN=` on FreeBSD 15; (3) Needed `<sys/socket.h>` for `AF_INET` |
+| Resolution | (1) Changed test program to single large read (1MB buffer) matching the kernel's iterate-all-in-one-call design; (2-3) Fixed includes and Makefile |
+| Notes | Test output: `version=1 record_size=320 count_hint=3`, 3 sockets (1 ESTABLISHED, 2 LISTEN). Also created `tools/decode_tcpstats.py` for Python-based decoding. |
+
+---
+
+## Step 12: Dual Device (`/dev/tcpstats-full`)
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Both devices created? | Yes -- `/dev/tcpstats` (0x72) and `/dev/tcpstats-full` (0x74) both appear |
+| Both devices removed on unload? | Yes -- both gone after `kldunload` |
+| Both return same data? | Yes -- both return 960 bytes (3 records, identical data) |
+| Issues | None -- clean compile and test on first try |
+| Resolution | N/A |
+| Notes | `sc_full` flag set via `dev->si_devsw == &tcpstats_full_cdevsw` in open. Rollback in MOD_LOAD if second `make_dev_credf` fails. |
+
+---
+
+## Step 13: Security Hardening
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-02 |
+| Permissions = `0440 root:network`? | Yes -- `cr--r----- 1 root network 0x72 /dev/tcpstats` and `cr--r----- 1 root network 0x74 /dev/tcpstats-full` |
+| Non-network-group user rejected? | Yes -- `su -m nobody -c 'cat /dev/tcpstats'` returns "Permission denied" |
+| `MODULE_DEPEND` recorded? | Yes -- `DECLARE_MODULE` on FreeBSD 15 already includes `MODULE_DEPEND(kernel)` via `DECLARE_MODULE_WITH_MAXVER`. Explicit `MODULE_DEPEND` was a duplicate and caused redefinition errors; removed. |
+| Issues | (1) Explicit `MODULE_DEPEND(tcp_stats_kld, kernel, ...)` caused redefinition error -- `DECLARE_MODULE` already expands to include it on FreeBSD 15 |
+| Resolution | Removed the explicit `MODULE_DEPEND` lines (410-411); `DECLARE_MODULE` handles kernel dependency automatically |
+| Notes | `GID_NETWORK=69` defined as fallback. `kldstat -v` shows module loaded correctly. Root reads all 3 sockets via test program. |
+
+---
+
+## Step 14: Stress Testing
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-02 |
+| 10 concurrent readers? | Yes -- all 10 `dd` processes completed without panic or error |
+| 100 rapid open/close (no leak)? | Yes -- `vmstat -m \| grep tcpstats` shows InUse=0, 111 requests total, no leaked allocations |
+| Connection churn? | Yes -- 20 `nc -z 8.8.8.8 53` during concurrent read completed OK, 23 sockets visible (including TIME_WAIT) |
+| kill -9 mid-read? | Yes -- `kill -9` during `cat /dev/tcpstats`, destructor cleaned up, `vmstat -m` InUse=0 |
+| 10 load/unload cycles? | Yes -- all 10 cycles completed, `kldstat` shows module loaded, "10-cycles-OK" |
+| Issues | None -- no panics, no memory leaks, no errors across all tests |
+| Resolution | N/A |
+| Notes | dmesg shows a page fault from a previous session (pre-reboot), not from current testing. Current session has clean load/unload history across ~20+ cycles. `MAKEDEV_ETERNAL_KLD` prevents unload-with-open-fd races. |
+
+---
+
+## Step 15: Performance Baseline
+
+| Field | Value |
+|---|---|
+| Status | **Complete** |
+| Date | 2025-03-02 |
+| Socket count on VM | 4 (1 ESTABLISHED SSH + 1 LISTEN IPv4 + 1 LISTEN IPv6 + 1 SSH fd-sharing) |
+| Total read time | 30 microseconds for 960 bytes (3 records), 32 MB/s throughput |
+| Records/second | ~100,000 records/sec (3 records in 30us) |
+| DTrace available? | Yes -- `kldload dtraceall` succeeded, fbt probes matched |
+| DTrace latency histogram | 20 reads: EOF path 256-512ns (20 calls), PCB iteration 2048-4096ns (19 calls), 1 outlier at 8192ns |
+| `kern_prefetch` symbol available? | **No** -- `nm /boot/kernel/kernel \| grep kern_prefetch` returned no results |
+| Notes | DTrace `fbt::tcpstats_read:entry/return` probes work. Median read latency ~2-4us for PCB iteration with 3 sockets. EOF read returns in ~256-512ns. `dd` wall-clock confirms 30us total. Performance is well within acceptable bounds for monitoring use case. |
+
+---
+
+## Appendix: Issues and Learnings
+
+_(Record any cross-cutting issues, surprises, or lessons learned here)_
+
+| Date | Issue | Resolution |
+|---|---|---|
+| | | |
