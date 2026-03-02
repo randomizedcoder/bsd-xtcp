@@ -4,10 +4,13 @@
 #
 #   Packages:
 #     default / bsd-xtcp          Native build for current platform
+#     tcp-echo                    TCP echo utility for stats verification
 #     proto                       Standalone protobuf schema validation
-#     cross-x86_64-darwin         Cross-compile for Intel Mac (Linux host only)
-#     cross-aarch64-darwin        Cross-compile for Apple Silicon M1/M2/M3/M4 (Linux host only)
+#     cross-x86_64-darwin         Cross-compile bsd-xtcp for Intel Mac (Linux host only)
+#     cross-aarch64-darwin        Cross-compile bsd-xtcp for Apple Silicon (Linux host only)
 #     cross-all                   All cross targets, binaries named by triple
+#     tcp-echo-cross-x86_64-darwin    Cross-compile tcp-echo for Intel Mac (Linux host only)
+#     tcp-echo-cross-aarch64-darwin   Cross-compile tcp-echo for Apple Silicon (Linux host only)
 #
 #   Apps (build with auto-named output dirs):
 #     cross-x86_64-darwin         nix run .#cross-x86_64-darwin  -> result-cross-x86_64-darwin/
@@ -15,7 +18,7 @@
 #     build-cross-all             nix run .#build-cross-all      -> builds all with separate dirs
 #
 #   Checks:
-#     clippy, fmt, test           Parallel CI checks
+#     clippy, fmt, test           Parallel CI checks (covers full workspace)
 #
 #   Dev shell:
 #     nix develop                 Rust toolchain + protobuf + security/analysis tools
@@ -71,6 +74,10 @@
           inherit pkgs rustPlatform src constants;
         };
 
+        tcpEcho = import ./nix/tcp-echo-package.nix {
+          inherit pkgs rustPlatform src constants;
+        };
+
         proto = import ./nix/proto.nix {
           inherit pkgs src;
         };
@@ -91,6 +98,19 @@
               inherit (targetCfg) rustTarget;
             }
           ) constants.crossTargets
+        );
+
+        # Cross-compiled tcp-echo packages (Linux host only).
+        tcpEchoCrossPackages = pkgs.lib.optionalAttrs pkgs.stdenv.isLinux (
+          builtins.mapAttrs (name: targetCfg:
+            import ./nix/tcp-echo-cross.nix {
+              inherit pkgs rustPlatform rustToolchainWithTargets src constants;
+              inherit (targetCfg) rustTarget;
+            }
+          ) (builtins.mapAttrs (name: cfg: cfg) {
+            "tcp-echo-cross-x86_64-darwin" = { rustTarget = "x86_64-apple-darwin"; };
+            "tcp-echo-cross-aarch64-darwin" = { rustTarget = "aarch64-apple-darwin"; };
+          })
         );
 
         # Combined cross-compilation output with all targets (Linux host only).
@@ -139,8 +159,9 @@
         packages = {
           default = package;
           bsd-xtcp = package;
+          tcp-echo = tcpEcho;
           proto = proto;
-        } // crossPackages // crossAll;
+        } // crossPackages // tcpEchoCrossPackages // crossAll;
 
         apps = crossApps;
 

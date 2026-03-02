@@ -1,3 +1,7 @@
+[workspace]
+members = [".", "utils/tcp-echo"]
+resolver = "2"
+
 [package]
 name = "bsd-xtcp"
 version = "0.1.0"
