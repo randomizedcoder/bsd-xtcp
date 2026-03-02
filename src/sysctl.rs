@@ -44,7 +44,7 @@ pub fn read_sysctl(name: &str) -> Result<Vec<u8>, SysctlError> {
             cname.as_ptr(),
             std::ptr::null_mut(),
             &mut size,
-            std::ptr::null(),
+            std::ptr::null_mut(),
             0,
         )
     };
@@ -66,7 +66,7 @@ pub fn read_sysctl(name: &str) -> Result<Vec<u8>, SysctlError> {
             cname.as_ptr(),
             buf.as_mut_ptr().cast(),
             &mut actual_size,
-            std::ptr::null(),
+            std::ptr::null_mut(),
             0,
         )
     };
