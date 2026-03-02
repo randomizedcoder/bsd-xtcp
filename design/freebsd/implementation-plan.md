@@ -20,15 +20,62 @@ Before Step 1, the FreeBSD VM must have:
 
 | Requirement | How to verify |
 |---|---|
-| FreeBSD 14.x or 15-CURRENT | `uname -r` |
-| SSH access from dev host | `ssh freebsd-vm uname -r` |
-| Kernel source tree | `ls /usr/src/sys/netinet/tcp_var.h` |
-| `tcp_fill_info` exported | `nm /boot/kernel/kernel \| grep tcp_fill_info` (expect uppercase `T`) |
-| `inp_next` exported | `nm /boot/kernel/kernel \| grep inp_next` |
-| `cr_canseeinpcb` exported | `nm /boot/kernel/kernel \| grep cr_canseeinpcb` |
-| Transfer mechanism | `scp` or `rsync` working to the VM |
+| FreeBSD 15.0-RELEASE | `ssh root@192.168.122.41 uname -r` |
+| SSH access from dev host (no password) | `ssh root@192.168.122.41 uname -r` |
+| Kernel source tree | `ssh root@192.168.122.41 ls /usr/src/sys/netinet/tcp_var.h` |
+| `tcp_fill_info` exported | `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep tcp_fill_info'` (expect uppercase `T`) |
+| `inp_next` exported | `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep inp_next'` |
+| `cr_canseeinpcb` exported | `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep cr_canseeinpcb'` |
+| Transfer mechanism | `rsync -av kmod/ root@192.168.122.41:/root/bsd-xtcp/kmod/` |
 
-If kernel source is missing: `pkg install git && git clone https://git.freebsd.org/src.git /usr/src`
+**VM details:**
+- **Host:** `root@192.168.122.41` (libvirt/KVM, no auth/password required)
+- **OS:** FreeBSD 15.0-RELEASE (GENERIC) `releng/15.0-n280995-7aedc8de6446`
+- **Access:** `ssh root@192.168.122.41`
+
+If kernel source is missing: `ssh root@192.168.122.41 'pkg install git && git clone https://git.freebsd.org/src.git /usr/src'`
+
+---
+
+## Development Workflow
+
+All development happens on the dev host; the FreeBSD VM is used only for
+compilation, loading, and testing. The workflow uses `rsync` + `ssh`:
+
+### Sync source to VM
+
+```sh
+rsync -av --delete kmod/ root@192.168.122.41:/root/bsd-xtcp/kmod/
+```
+
+### Compile on VM
+
+```sh
+ssh root@192.168.122.41 'cd /root/bsd-xtcp/kmod/tcp_stats_kld && make clean && make'
+```
+
+### Load and test on VM
+
+```sh
+ssh root@192.168.122.41 'kldunload tcp_stats_kld 2>/dev/null; kldload /root/bsd-xtcp/kmod/tcp_stats_kld/tcp_stats_kld.ko && dmesg | tail -5'
+```
+
+### One-liner: sync + build + deploy
+
+```sh
+rsync -av --delete kmod/ root@192.168.122.41:/root/bsd-xtcp/kmod/ && \
+ssh root@192.168.122.41 'cd /root/bsd-xtcp/kmod/tcp_stats_kld && make clean && make && kldunload tcp_stats_kld 2>/dev/null; kldload ./tcp_stats_kld.ko && dmesg | tail -5'
+```
+
+### Run validation commands on VM
+
+Any validation command from the steps below can be run remotely:
+
+```sh
+ssh root@192.168.122.41 'kldstat | grep tcp_stats'
+ssh root@192.168.122.41 'ls -la /dev/tcpstats'
+ssh root@192.168.122.41 'dd if=/dev/tcpstats bs=65536 2>/dev/null | wc -c'
+```
 
 ### File layout (final state)
 

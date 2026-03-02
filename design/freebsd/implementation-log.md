@@ -13,13 +13,13 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Property | Value |
 |---|---|
-| FreeBSD version | _(fill in after VM setup)_ |
-| VM type | _(bhyve/VirtualBox/QEMU/etc.)_ |
-| SSH access | _(e.g., ssh root@192.168.x.x)_ |
-| Kernel source path | _(e.g., /usr/src/sys)_ |
-| `tcp_fill_info` exported? | _(yes/no -- `nm /boot/kernel/kernel \| grep tcp_fill_info`)_ |
-| `inp_next` exported? | _(yes/no)_ |
-| `cr_canseeinpcb` exported? | _(yes/no)_ |
+| FreeBSD version | 15.0-RELEASE (GENERIC) `releng/15.0-n280995-7aedc8de6446` |
+| VM type | libvirt/KVM |
+| SSH access | `ssh root@192.168.122.41` (no password required) |
+| Kernel source path | TBD -- check with `ssh root@192.168.122.41 ls /usr/src/sys` |
+| `tcp_fill_info` exported? | TBD -- check with `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep tcp_fill_info'` |
+| `inp_next` exported? | TBD -- check with `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep inp_next'` |
+| `cr_canseeinpcb` exported? | TBD -- check with `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep cr_canseeinpcb'` |
 
 ---
 
