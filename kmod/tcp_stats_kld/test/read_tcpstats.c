@@ -11,7 +11,7 @@
 
 #include "tcp_stats_kld.h"
 
-#define	READBUF_SIZE	(1024 * 1024)	/* 1 MB, ~3200 records max */
+#define	READBUF_SIZE	(4 * 1024 * 1024)	/* 4 MB, ~13000 records max */
 
 static const char *tcp_states[] = {
 	"CLOSED",      "LISTEN",      "SYN_SENT",    "SYN_RCVD",
@@ -27,30 +27,86 @@ state_name(int state)
 	return ("?");
 }
 
+static void
+usage(void)
+{
+	fprintf(stderr,
+	    "usage: read_tcpstats [-acL] [-p port]\n"
+	    "  -a        read from /dev/tcpstats-full\n"
+	    "  -c        count-only mode (print matching record count)\n"
+	    "  -L        exclude LISTEN sockets (kernel filter)\n"
+	    "  -p port   show only records matching port (local or remote)\n");
+	exit(1);
+}
+
 int
 main(int argc, char *argv[])
 {
 	struct tcpstats_version ver;
+	struct tcpstats_filter filt;
 	struct tcp_stats_record *rec;
 	char laddr[INET6_ADDRSTRLEN], raddr[INET6_ADDRSTRLEN];
+	const char *devpath;
 	char *buf;
 	ssize_t nbytes;
-	int fd, count, i;
+	int fd, count, matched, i, ch;
+	int flag_all = 0;	/* -a: use /dev/tcpstats-full */
+	int flag_count = 0;	/* -c: count-only output */
+	int flag_listen = 0;	/* -L: exclude LISTEN */
+	int filter_port = -1;	/* -p: port filter (-1 = disabled) */
 
-	fd = open("/dev/tcpstats", O_RDONLY);
+	while ((ch = getopt(argc, argv, "acLp:")) != -1) {
+		switch (ch) {
+		case 'a':
+			flag_all = 1;
+			break;
+		case 'c':
+			flag_count = 1;
+			break;
+		case 'L':
+			flag_listen = 1;
+			break;
+		case 'p':
+			filter_port = atoi(optarg);
+			if (filter_port <= 0 || filter_port > 65535) {
+				fprintf(stderr, "invalid port: %s\n", optarg);
+				return (1);
+			}
+			break;
+		default:
+			usage();
+		}
+	}
+
+	devpath = flag_all ? "/dev/tcpstats-full" : "/dev/tcpstats";
+	fd = open(devpath, O_RDONLY);
 	if (fd < 0) {
-		perror("open /dev/tcpstats");
+		perror(devpath);
 		return (1);
 	}
 
-	if (ioctl(fd, TCPSTATS_VERSION_CMD, &ver) < 0) {
-		perror("ioctl TCPSTATS_VERSION_CMD");
-		close(fd);
-		return (1);
+	/* Apply kernel-side LISTEN exclusion if requested */
+	if (flag_listen) {
+		memset(&filt, 0, sizeof(filt));
+		filt.state_mask = 0xFFFF;	/* include all states */
+		filt.flags = TSF_EXCLUDE_LISTEN;
+		if (ioctl(fd, TCPSTATS_SET_FILTER, &filt) < 0) {
+			perror("ioctl TCPSTATS_SET_FILTER");
+			close(fd);
+			return (1);
+		}
 	}
 
-	printf("version=%u  record_size=%u  count_hint=%u\n",
-	    ver.protocol_version, ver.record_size, ver.record_count_hint);
+	if (!flag_count) {
+		if (ioctl(fd, TCPSTATS_VERSION_CMD, &ver) < 0) {
+			perror("ioctl TCPSTATS_VERSION_CMD");
+			close(fd);
+			return (1);
+		}
+		printf("version=%u  record_size=%u  count_hint=%u\n",
+		    ver.protocol_version, ver.record_size,
+		    ver.record_count_hint);
+	}
 
 	buf = malloc(READBUF_SIZE);
 	if (buf == NULL) {
@@ -68,8 +124,21 @@ main(int argc, char *argv[])
 	}
 
 	count = nbytes / TCP_STATS_RECORD_SIZE;
+	matched = 0;
+
 	for (i = 0; i < count; i++) {
 		rec = (struct tcp_stats_record *)(buf + i * TCP_STATS_RECORD_SIZE);
+
+		/* Userspace port filter */
+		if (filter_port >= 0 &&
+		    rec->tsr_local_port != (uint16_t)filter_port &&
+		    rec->tsr_remote_port != (uint16_t)filter_port)
+			continue;
+
+		matched++;
+
+		if (flag_count)
+			continue;
 
 		if (rec->tsr_af == AF_INET) {
 			inet_ntop(AF_INET, &rec->tsr_local_addr.v4,
@@ -101,10 +170,18 @@ main(int argc, char *argv[])
 		if (rec->tsr_stack[0] != '\0')
 			printf("  stack=%s", rec->tsr_stack);
 
+		printf("  snd_buf=%u/%u  rcv_buf=%u/%u",
+		    rec->tsr_snd_buf_cc, rec->tsr_snd_buf_hiwat,
+		    rec->tsr_rcv_buf_cc, rec->tsr_rcv_buf_hiwat);
+
 		printf("  uid=%u\n", rec->tsr_uid);
 	}
 
-	printf("total: %d sockets\n", count);
+	if (flag_count)
+		printf("%d\n", matched);
+	else
+		printf("total: %d sockets (%d matched)\n", count, matched);
+
 	free(buf);
 	close(fd);
 	return (0);
