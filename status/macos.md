@@ -10,8 +10,9 @@ The Nix + Protobuf + Rust build pipeline is fully operational. A demo binary com
 - Flake inputs: nixpkgs-unstable, rust-overlay, flake-utils, advisory-db
 - Rust 1.93.0 pinned via rust-overlay with clippy, rustfmt, rust-src extensions
 - Custom `rustPlatform` via `makeRustPlatform` for reproducible builds
-- `nix/constants.nix` — centralized pname, version, rustVersion, systems, tool lists
+- `nix/constants.nix` — centralized pname, version, rustVersion, systems, tool lists, crossTargets
 - `nix/package.nix` — `buildRustPackage` with protobuf, pkg-config, darwin framework support
+- `nix/cross.nix` — cross-compilation derivation using cargo-zigbuild + zig for macOS targets
 - `nix/proto.nix` — standalone proto validation (`nix build .#proto`)
 - `nix/checks.nix` — clippy, fmt, test as separate derivations for parallel CI
 - `nix/shell.nix` — dev shell with explicit deps, `CARGO_HOME=.cargo` to isolate from rustup
@@ -37,6 +38,66 @@ The Nix + Protobuf + Rust build pipeline is fully operational. A demo binary com
 | `cargo clippy` still found old rustc | cargo checks `~/.cargo/bin` for subcommands, found rustup proxy | Set `CARGO_HOME=.cargo` in dev shell env |
 | `cargoLock.lockFile` eval error | String interpolation `"${src}/..."` not valid for Nix path | Changed to path concatenation `src + "/Cargo.lock"` |
 | `.cargo/` registry staged in git | `CARGO_HOME=.cargo` + `git add -A` | Added `/.cargo` to .gitignore |
+| `sysctlbyname` newp arg type mismatch | macOS `libc` expects `*mut c_void`, code used `std::ptr::null()` (`*const`) | Changed to `std::ptr::null_mut()` — silent on native builds, caught by cross-compile |
+| cargo-zigbuild HOME cache dir | Nix sandbox sets `$HOME=/homeless-shelter` (doesn't exist) | Set `export HOME=$(mktemp -d)` in buildPhase |
+
+### Cross-compilation (Complete)
+
+Cross-compile macOS binaries from Linux using `cargo-zigbuild` + `zig` (which bundles macOS SDK/linker stubs). No Xcode or macOS SDK installation required.
+
+**Nix files added/changed:**
+
+- `nix/constants.nix` — added `crossTargets` mapping (`cross-x86_64-darwin`, `cross-aarch64-darwin`) to Rust target triples
+- `nix/cross.nix` (new) — `stdenv.mkDerivation` using `cargo zigbuild --release --target <triple>`:
+  - `nativeBuildInputs`: `rustToolchainWithTargets`, `cargo-zigbuild`, `zig`, `protobuf`, `pkg-config`, `cargoSetupHook`
+  - `cargoDeps`: `rustPlatform.importCargoLock` for offline builds
+  - `doCheck = false` (can't run Mach-O on Linux)
+  - `meta.platforms = platforms.linux` (only builds on Linux hosts)
+- `flake.nix` — added `rustToolchainWithTargets` (base toolchain + darwin targets), `crossPackages` conditional on `stdenv.isLinux`, merged into `packages` output
+
+**Key insight:** No Apple frameworks are actually linked at build time. The `SystemConfiguration` entry in `package.nix` is precautionary — `Cargo.lock` shows zero crates that depend on it. The only native dependency is `libc` (for `sysctlbyname`), which zig's bundled `libSystem.B.dylib` stubs satisfy.
+
+**Build convenience targets:**
+
+Three ways to build cross targets, all producing per-target output directories:
+
+| Method | Command | Output |
+|--------|---------|--------|
+| Makefile | `make cross-aarch64-darwin` | `result-cross-aarch64-darwin/bin/bsd-xtcp` |
+| Makefile | `make cross-x86_64-darwin` | `result-cross-x86_64-darwin/bin/bsd-xtcp` |
+| Makefile | `make cross-all` | Both targets |
+| nix run | `nix run .#cross-aarch64-darwin` | `result-cross-aarch64-darwin/bin/bsd-xtcp` |
+| nix run | `nix run .#cross-x86_64-darwin` | `result-cross-x86_64-darwin/bin/bsd-xtcp` |
+| nix run | `nix run .#build-cross-all` | Both targets with separate output dirs |
+| nix build | `nix build .#cross-all` | `result/bin/bsd-xtcp-{x86_64,aarch64}-apple-darwin` |
+
+The `apps` outputs wrap `nix build` with `--out-link result-<target>` so each target gets its own output directory automatically. The `cross-all` package collects all targets into a single output with binaries named by target triple.
+
+**Binary sizes** (release, stripped):
+
+| Target | Size |
+|--------|------|
+| `x86_64-apple-darwin` | ~613 KB |
+| `aarch64-apple-darwin` | ~633 KB |
+
+**Tested end-to-end:** built on Linux via `nix build .#cross-x86_64-darwin`, scp'd to macOS 11.7.10 x86_64 host, confirmed working with live TCP socket data:
+
+```
+$ nix build .#cross-x86_64-darwin
+$ file ./result/bin/bsd-xtcp
+bsd-xtcp: Mach-O 64-bit x86_64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS|PIE|HAS_TLV_DESCRIPTORS>
+
+$ scp ./result/bin/bsd-xtcp 172.16.50.135:
+bsd-xtcp                                          100%  613KB  17.3MB/s   00:00
+
+$ ssh 172.16.50.135 './bsd-xtcp --count 1'
+{"metadata":{"timestampNs":"1772408699298216000","hostname":"dass-MBP.localdomain",
+"platform":"PLATFORM_MACOS","osVersion":"11.7.10","intervalMs":1000,
+"dataSources":["DATA_SOURCE_MACOS_PCBLIST_N"],"collectionDurationNs":"50816",
+"pcblistGeneration":"626","batchSequence":"1","toolVersion":"bsd-xtcp 0.1.0"},
+"records":[...7 sockets...],"summary":{"timestampNs":"1772408699298229000",
+"intervalMs":1000,"totalSockets":7,"stateCounts":[{"state":"TCP_STATE_CLOSED","count":7}]}}
+```
 
 ## Phase 2: Sysctl Reader (Complete)
 
@@ -151,10 +212,18 @@ Not added (intentionally): tokio, clap, tracing, byteorder, nix crate.
 | `nix develop -c cargo test` | 8 tests pass (state mapping, conversion, parser with synthetic byte buffers) |
 | On macOS: `cargo run -- --count 1` | Prints one JSON BatchMessage with live socket data |
 | On macOS: `cargo run -- --count 3 --interval 2` | Prints 3 batches, 2 seconds apart |
+| `nix build .#cross-x86_64-darwin` | Cross-compiles Mach-O x86_64 binary (~613 KB) on Linux |
+| `nix build .#cross-aarch64-darwin` | Cross-compiles Mach-O arm64 binary (~633 KB) on Linux |
+| `nix build .#cross-all` | Both targets in `result/bin/` named by triple |
+| `nix run .#cross-aarch64-darwin` | Builds to `result-cross-aarch64-darwin/` automatically |
+| `nix run .#build-cross-all` | Builds both targets with separate output dirs |
+| `make cross-all` | Builds both targets via Makefile |
+| Cross-compiled x86_64 binary on macOS 11.7.10 | Runs successfully, collects live TCP socket data |
 
 ## File inventory
 
 ```
+Makefile                         # Build targets: build, test, clippy, fmt, cross-*
 src/
   lib.rs                       # Library root — 7 module declarations
   main.rs                      # Collection loop with anyhow error handling

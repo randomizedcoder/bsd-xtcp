@@ -4,6 +4,52 @@ A system-wide TCP socket statistics exporter for FreeBSD and macOS. Polls all TC
 
 This is the BSD counterpart to [xtcp](https://github.com/randomizedcoder/xtcp) and [xtcp2](https://github.com/randomizedcoder/xtcp2), which use Linux Netlink.
 
+## Quick Start
+
+### Native build (macOS or Linux)
+
+```sh
+nix build .
+./result/bin/bsd-xtcp --count 1 --pretty
+```
+
+### Cross-compile for macOS from Linux
+
+No Xcode or macOS SDK required. Uses Nix + cargo-zigbuild + zig.
+
+```sh
+# Option 1: Makefile (simplest)
+make cross-aarch64-darwin          # Apple Silicon (M1/M2/M3/M4)
+make cross-x86_64-darwin           # Intel Mac
+make cross-all                     # both targets
+
+# Option 2: nix run (auto-names output directories)
+nix run .#cross-aarch64-darwin     # -> result-cross-aarch64-darwin/bin/bsd-xtcp
+nix run .#cross-x86_64-darwin      # -> result-cross-x86_64-darwin/bin/bsd-xtcp
+nix run .#build-cross-all          # builds both with separate output dirs
+
+# Option 3: nix build (manual output link)
+nix build .#cross-aarch64-darwin -o result-cross-aarch64-darwin
+nix build .#cross-all              # both binaries in result/bin/ named by target
+```
+
+### Deploy to a Mac
+
+```sh
+scp result-cross-aarch64-darwin/bin/bsd-xtcp user@mac:~/
+ssh user@mac '~/bsd-xtcp --count 1 --pretty'
+```
+
+### Available Nix targets
+
+| Target | Description |
+|--------|-------------|
+| `default` / `bsd-xtcp` | Native build for current platform |
+| `proto` | Standalone protobuf schema validation |
+| `cross-x86_64-darwin` | Cross-compile for Intel Mac (Linux host only) |
+| `cross-aarch64-darwin` | Cross-compile for Apple Silicon M1/M2/M3/M4 (Linux host only) |
+| `cross-all` | All cross targets in one output, binaries named by target triple |
+
 ## Overview
 
 The tool reads `sysctl net.inet.tcp.pcblist` (FreeBSD) or `net.inet.tcp.pcblist_n` (macOS) to enumerate every TCP socket on the system in a single kernel round-trip. On macOS, this sysctl includes RTT and PID data directly; on FreeBSD, a kernel module (`tcp_stats_kld`) and `kern.file` join provide the equivalent coverage.
@@ -59,13 +105,15 @@ Options:
 
 On Linux the binary compiles but returns an `UnsupportedPlatform` error at runtime (sysctl calls are macOS/FreeBSD only). The parser and conversion logic are fully testable on Linux via unit tests with synthetic byte buffers.
 
+On Linux the cross-compiled binaries can be built for macOS — see [Quick Start](#quick-start) above.
+
 ## Status
 
 Phases 1-6 are complete. The tool reads live TCP socket data from the macOS kernel via `net.inet.tcp.pcblist_n`, parses the tagged binary stream, converts to the protobuf schema, and outputs JSON Lines to stdout.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1 - Build pipeline | Done | Nix flake + proto + prost-build + pbjson serde |
+| 1 - Build pipeline | Done | Nix flake + proto + prost-build + pbjson serde + cross-compilation via cargo-zigbuild |
 | 2 - Sysctl reader | Done | `read_sysctl()`, `read_pcblist_validated()`, `read_clock_hz()` with retry + Linux stubs |
 | 3 - macOS pcblist_n parser | Done | Cursor-based tagged record parser with `ConnectionAccumulator` |
 | 4 - Record conversion | Done | `RawSocketRecord` intermediate type + proto conversion |

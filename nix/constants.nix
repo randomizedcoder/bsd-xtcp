@@ -30,4 +30,14 @@ rec {
     "rust-analyzer"
     "cargo-expand"
   ];
+
+  # Cross-compilation targets (Linux host → macOS).
+  crossTargets = {
+    "cross-x86_64-darwin" = {
+      rustTarget = "x86_64-apple-darwin";
+    };
+    "cross-aarch64-darwin" = {
+      rustTarget = "aarch64-apple-darwin";
+    };
+  };
 }
