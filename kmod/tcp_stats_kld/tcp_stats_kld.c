@@ -23,6 +23,10 @@
 
 #include "tcp_stats_kld.h"
 
+#ifndef GID_NETWORK
+#define	GID_NETWORK	69
+#endif
+
 MALLOC_DEFINE(M_TCPSTATS, "tcpstats", "tcp_stats_kld per-fd state");
 
 struct tcpstats_softc {
@@ -31,20 +35,32 @@ struct tcpstats_softc {
 	int			sc_started;
 	int			sc_done;
 	struct tcpstats_filter	sc_filter;
+	int			sc_full;
 };
 
 static d_open_t		tcpstats_open;
 static d_read_t		tcpstats_read;
+static d_ioctl_t	tcpstats_ioctl;
 
 static void		tcpstats_dtor(void *data);
 
 static struct cdev *tcpstats_dev;
+static struct cdev *tcpstats_full_dev;
 
 static struct cdevsw tcpstats_cdevsw = {
 	.d_version = D_VERSION,
 	.d_name    = "tcpstats",
 	.d_open    = tcpstats_open,
 	.d_read    = tcpstats_read,
+	.d_ioctl   = tcpstats_ioctl,
+};
+
+static struct cdevsw tcpstats_full_cdevsw = {
+	.d_version = D_VERSION,
+	.d_name    = "tcpstats-full",
+	.d_open    = tcpstats_open,
+	.d_read    = tcpstats_read,
+	.d_ioctl   = tcpstats_ioctl,
 };
 
 static int
@@ -59,6 +75,7 @@ tcpstats_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	sc = malloc(sizeof(*sc), M_TCPSTATS, M_WAITOK | M_ZERO);
 	sc->sc_cred = crhold(td->td_ucred);
 	sc->sc_filter.state_mask = 0xFFFF;
+	sc->sc_full = (dev->si_devsw == &tcpstats_full_cdevsw);
 
 	error = devfs_set_cdevpriv(sc, tcpstats_dtor);
 	if (error != 0) {
@@ -263,6 +280,25 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		if (cr_canseeinpcb(sc->sc_cred, inp) != 0)
 			continue;
 
+		/* State filtering. */
+		{
+			struct tcpcb *tp = intotcpcb(inp);
+			if (tp != NULL) {
+				if (sc->sc_filter.state_mask != 0xFFFF &&
+				    !(sc->sc_filter.state_mask &
+				    (1 << tp->t_state)))
+					continue;
+				if ((sc->sc_filter.flags &
+				    TSF_EXCLUDE_LISTEN) &&
+				    tp->t_state == TCPS_LISTEN)
+					continue;
+				if ((sc->sc_filter.flags &
+				    TSF_EXCLUDE_TIMEWAIT) &&
+				    tp->t_state == TCPS_TIME_WAIT)
+					continue;
+			}
+		}
+
 		bzero(&rec, sizeof(rec));
 		tcpstats_fill_record(&rec, inp);
 
@@ -278,6 +314,45 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 
 	sc->sc_done = 1;
 	return (0);
+}
+
+static int
+tcpstats_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
+{
+	struct tcpstats_softc *sc;
+	int error;
+
+	error = devfs_get_cdevpriv((void **)&sc);
+	if (error != 0)
+		return (error);
+
+	switch (cmd) {
+	case TCPSTATS_VERSION_CMD:
+	{
+		struct tcpstats_version *ver = (struct tcpstats_version *)data;
+
+		CURVNET_SET(TD_TO_VNET(td));
+		ver->protocol_version = TCP_STATS_VERSION;
+		ver->record_size = TCP_STATS_RECORD_SIZE;
+		ver->record_count_hint = V_tcbinfo.ipi_count;
+		ver->flags = 0;
+		CURVNET_RESTORE();
+		return (0);
+	}
+	case TCPSTATS_SET_FILTER:
+	{
+		struct tcpstats_filter *filt = (struct tcpstats_filter *)data;
+
+		sc->sc_filter = *filt;
+		return (0);
+	}
+	case TCPSTATS_RESET:
+		sc->sc_done = 0;
+		return (0);
+	default:
+		return (ENOTTY);
+	}
 }
 
 static void
@@ -296,15 +371,26 @@ tcp_stats_kld_modevent(module_t mod, int type, void *arg)
 	switch (type) {
 	case MOD_LOAD:
 		tcpstats_dev = make_dev_credf(MAKEDEV_ETERNAL_KLD,
-		    &tcpstats_cdevsw, 0, NULL, UID_ROOT, GID_WHEEL,
-		    0444, "tcpstats");
+		    &tcpstats_cdevsw, 0, NULL, UID_ROOT, GID_NETWORK,
+		    0440, "tcpstats");
 		if (tcpstats_dev == NULL) {
 			printf("tcp_stats_kld: make_dev_credf failed\n");
+			return (ENXIO);
+		}
+		tcpstats_full_dev = make_dev_credf(MAKEDEV_ETERNAL_KLD,
+		    &tcpstats_full_cdevsw, 0, NULL, UID_ROOT, GID_NETWORK,
+		    0440, "tcpstats-full");
+		if (tcpstats_full_dev == NULL) {
+			destroy_dev(tcpstats_dev);
+			tcpstats_dev = NULL;
+			printf("tcp_stats_kld: make_dev_credf (full) failed\n");
 			return (ENXIO);
 		}
 		printf("tcp_stats_kld: loaded\n");
 		return (0);
 	case MOD_UNLOAD:
+		if (tcpstats_full_dev != NULL)
+			destroy_dev(tcpstats_full_dev);
 		if (tcpstats_dev != NULL)
 			destroy_dev(tcpstats_dev);
 		printf("tcp_stats_kld: unloaded\n");
