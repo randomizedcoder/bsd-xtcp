@@ -117,15 +117,15 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| SSH connection visible? | |
-| Addresses correct? | |
-| State values correct? | |
-| `sockstat` cross-check? | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| SSH connection visible? | Yes -- `192.168.122.41:22 -> 192.168.122.1:port` state=4(ESTABLISHED) |
+| Addresses correct? | Yes -- IPv4 and IPv6 addresses decoded correctly via `inet_ntop` |
+| State values correct? | Yes -- ESTABLISHED=4, LISTEN=1, TSR_F_LISTEN and TSR_F_IPV6 flags set correctly |
+| `sockstat` cross-check? | Yes -- matches `sockstat -4 -6 -P tcp -c` output |
+| Issues | Initial Python decoder used wrong field offsets (assumed design doc byte-count comments were cumulative); `t_state` bitfield access works fine |
+| Resolution | Computed correct packed offsets; created `tools/decode_tcpstats.py` with BSD AF_INET6=28 handling |
+| Notes | `intotcpcb()` uses `__containerof` so never returns NULL on FreeBSD 15 (inpcb embedded in tcpcb). `t_flags` also populated. Added reusable Python decoder to repo. |
 
 ---
 
@@ -133,16 +133,16 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| `tcp_fill_info` symbol available? | |
-| Non-zero RTT for ESTABLISHED? | |
-| RTT value plausible? | |
-| Sequence numbers populated? | |
-| cwnd populated? | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| `tcp_fill_info` symbol available? | **No** -- static (`t`). Replicated its logic in `tcpstats_fill_record()` using direct tcpcb field access. |
+| Non-zero RTT for ESTABLISHED? | Yes -- `rtt=6562us` for SSH session |
+| RTT value plausible? | Yes -- ~6.5ms consistent with KVM local network |
+| Sequence numbers populated? | Yes -- `snd_nxt`, `snd_una`, `snd_max`, `rcv_nxt`, `rcv_adv` all populated |
+| cwnd populated? | Yes -- `cwnd=18367`, `ssthresh=1073725440` (huge = not limited), `maxseg=1460` |
+| Issues | None -- clean compile on first try after planning |
+| Resolution | N/A |
+| Notes | Used `tcp_fill_info()` source (tcp_usrreq.c:1569) as reference. RTT conversion: `(t_srtt * tick) >> TCP_RTT_SHIFT`. Also populated: rttvar, rto, rttmin(t_rttlow), window scale, options (TIMESTAMPS/SACK/WSCALE), snd_wnd, rcv_wnd. `tcp_get_srtt` IS exported but not needed since we replicate the conversion directly. 20-iter stability OK. |
 
 ---
 
@@ -150,17 +150,17 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| CC algo name? | |
-| TCP stack name? | |
-| Timer values populated? | |
-| Buffer sizes populated? | |
-| Counter fields working? | |
-| Field name mismatches found? | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| CC algo name? | Yes -- `cc='cubic'` via `CC_ALGO(tp)->name` |
+| TCP stack name? | Yes -- `stack='freebsd'` via `tp->t_fb->tfb_tcp_block_name` |
+| Timer values populated? | Yes -- `tt_rexmt=247ms`, `tt_keep=7199857ms` (~2hr), others 0 for idle SSH |
+| Buffer sizes populated? | Yes -- `snd_buf=72/33580`, `rcv_buf=0/65700` |
+| Counter fields working? | Yes -- all zero for clean SSH session (expected). ECN=1, options=0x07 (TS+SACK+WS) |
+| Field name mismatches found? | None -- all FreeBSD 15 field names matched: `t_sndtlppack`/`t_sndtlpbyte` for TLP, `t_scep`/`t_rcep` for ECN, `t_rttlow` for rttmin |
+| Issues | None -- compiled clean on first attempt |
+| Resolution | N/A |
+| Notes | Timers use `sbintime_t t_timers[]` with `getsbinuptime()` delta and `SBT_1MS` divisor. `rcvtime` converted from ticks via `(ticks - t_rcvtime) * tick / 1000`. 20-iter stability OK. |
 
 ---
 

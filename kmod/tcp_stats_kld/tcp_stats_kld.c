@@ -15,7 +15,11 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_pcb.h>
+#include <sys/time.h>
+#include <netinet/tcp.h>
+#include <netinet/tcp_fsm.h>
 #include <netinet/tcp_var.h>
+#include <netinet/cc/cc.h>
 
 #include "tcp_stats_kld.h"
 
@@ -66,6 +70,163 @@ tcpstats_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	return (0);
 }
 
+static void
+tcpstats_fill_identity(struct tcp_stats_record *rec, struct inpcb *inp)
+{
+	struct tcpcb *tp;
+	struct socket *so;
+
+	rec->tsr_version = TCP_STATS_VERSION;
+	rec->tsr_len = TCP_STATS_RECORD_SIZE;
+
+	/* AF and addresses */
+	if (inp->inp_vflag & INP_IPV6) {
+		rec->tsr_af = AF_INET6;
+		rec->tsr_flags |= TSR_F_IPV6;
+		rec->tsr_local_addr.v6 = inp->inp_inc.inc6_laddr;
+		rec->tsr_remote_addr.v6 = inp->inp_inc.inc6_faddr;
+	} else {
+		rec->tsr_af = AF_INET;
+		rec->tsr_local_addr.v4 = inp->inp_inc.inc_laddr;
+		rec->tsr_remote_addr.v4 = inp->inp_inc.inc_faddr;
+	}
+
+	rec->tsr_local_port = ntohs(inp->inp_lport);
+	rec->tsr_remote_port = ntohs(inp->inp_fport);
+
+	/* TCP state from tcpcb */
+	tp = intotcpcb(inp);
+	if (tp != NULL) {
+		rec->tsr_state = tp->t_state;
+		rec->tsr_flags_tcp = tp->t_flags;
+		if (tp->t_state == TCPS_LISTEN)
+			rec->tsr_flags |= TSR_F_LISTEN;
+	}
+
+	/* Socket metadata */
+	so = inp->inp_socket;
+	if (so != NULL) {
+		rec->tsr_so_addr = (uint64_t)(uintptr_t)so;
+		if (so->so_cred != NULL)
+			rec->tsr_uid = so->so_cred->cr_uid;
+	}
+
+	rec->tsr_inp_gencnt = inp->inp_gencnt;
+}
+
+/*
+ * Fill RTT, sequence numbers, congestion, and window fields.
+ * Replicates tcp_fill_info() logic since that function is static
+ * on FreeBSD 15.0-RELEASE.
+ */
+static void
+tcpstats_fill_record(struct tcp_stats_record *rec, struct inpcb *inp)
+{
+	struct tcpcb *tp;
+
+	tcpstats_fill_identity(rec, inp);
+
+	tp = intotcpcb(inp);
+	if (tp == NULL || tp->t_state == TCPS_LISTEN)
+		return;
+
+	/* RTT -- replicate tcp_fill_info() conversion to usec */
+	rec->tsr_rtt = ((uint64_t)tp->t_srtt * tick) >> TCP_RTT_SHIFT;
+	rec->tsr_rttvar = ((uint64_t)tp->t_rttvar * tick) >> TCP_RTTVAR_SHIFT;
+	rec->tsr_rto = tp->t_rxtcur * tick;
+	rec->tsr_rttmin = tp->t_rttlow;
+
+	/* Window scale and options */
+	if ((tp->t_flags & TF_REQ_SCALE) && (tp->t_flags & TF_RCVD_SCALE)) {
+		rec->tsr_options |= TCPI_OPT_WSCALE;
+		rec->tsr_snd_wscale = tp->snd_scale;
+		rec->tsr_rcv_wscale = tp->rcv_scale;
+	}
+	if ((tp->t_flags & TF_REQ_TSTMP) && (tp->t_flags & TF_RCVD_TSTMP))
+		rec->tsr_options |= TCPI_OPT_TIMESTAMPS;
+	if (tp->t_flags & TF_SACK_PERMIT)
+		rec->tsr_options |= TCPI_OPT_SACK;
+
+	/* Sequence numbers */
+	rec->tsr_snd_nxt = tp->snd_nxt;
+	rec->tsr_snd_una = tp->snd_una;
+	rec->tsr_snd_max = tp->snd_max;
+	rec->tsr_rcv_nxt = tp->rcv_nxt;
+	rec->tsr_rcv_adv = tp->rcv_adv;
+
+	/* Congestion */
+	rec->tsr_snd_cwnd = tp->snd_cwnd;
+	rec->tsr_snd_ssthresh = tp->snd_ssthresh;
+	rec->tsr_snd_wnd = tp->snd_wnd;
+	rec->tsr_rcv_wnd = tp->rcv_wnd;
+	rec->tsr_maxseg = tp->t_maxseg;
+
+	/* CC algo and TCP stack names */
+	if (CC_ALGO(tp) != NULL)
+		strlcpy(rec->tsr_cc, CC_ALGO(tp)->name,
+		    sizeof(rec->tsr_cc));
+	if (tp->t_fb != NULL)
+		strlcpy(rec->tsr_stack, tp->t_fb->tfb_tcp_block_name,
+		    sizeof(rec->tsr_stack));
+
+	/* Counters */
+	rec->tsr_snd_rexmitpack = tp->t_sndrexmitpack;
+	rec->tsr_rcv_ooopack = tp->t_rcvoopack;
+	rec->tsr_snd_zerowin = tp->t_sndzerowin;
+	rec->tsr_dupacks = tp->t_dupacks;
+	rec->tsr_rcv_numsacks = tp->rcv_numsacks;
+
+	/* ECN */
+	if ((tp->t_flags2 & (TF2_ECN_PERMIT | TF2_ACE_PERMIT)) ==
+	    (TF2_ECN_PERMIT | TF2_ACE_PERMIT))
+		rec->tsr_delivered_ce = tp->t_scep - 5;
+	else
+		rec->tsr_delivered_ce = tp->t_scep;
+	rec->tsr_received_ce = tp->t_rcep;
+	rec->tsr_ecn = (tp->t_flags2 & TF2_ECN_PERMIT) ? 1 : 0;
+
+	/* DSACK */
+	rec->tsr_dsack_bytes = tp->t_dsack_bytes;
+	rec->tsr_dsack_pack = tp->t_dsack_pack;
+
+	/* TLP */
+	rec->tsr_total_tlp = tp->t_sndtlppack;
+	rec->tsr_total_tlp_bytes = tp->t_sndtlpbyte;
+
+	/* Timers -- remaining time in ms, 0 if not running */
+	{
+		sbintime_t now = getsbinuptime();
+		int i;
+		int32_t *timer_fields[] = {
+			&rec->tsr_tt_rexmt,
+			&rec->tsr_tt_persist,
+			&rec->tsr_tt_keep,
+			&rec->tsr_tt_2msl,
+			&rec->tsr_tt_delack,
+		};
+		for (i = 0; i < TT_N; i++) {
+			if (tp->t_timers[i] == SBT_MAX ||
+			    tp->t_timers[i] == 0)
+				*timer_fields[i] = 0;
+			else
+				*timer_fields[i] = (int32_t)(
+				    (tp->t_timers[i] - now) / SBT_1MS);
+		}
+	}
+	rec->tsr_rcvtime = ((uint32_t)ticks - tp->t_rcvtime) * tick / 1000;
+
+	/* Buffer utilization */
+	{
+		struct socket *so = inp->inp_socket;
+		if (so != NULL) {
+			rec->tsr_snd_buf_cc = so->so_snd.sb_ccc;
+			rec->tsr_snd_buf_hiwat = so->so_snd.sb_hiwat;
+			rec->tsr_rcv_buf_cc = so->so_rcv.sb_ccc;
+			rec->tsr_rcv_buf_hiwat = so->so_rcv.sb_hiwat;
+		}
+	}
+}
+
 static int
 tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 {
@@ -103,18 +264,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 			continue;
 
 		bzero(&rec, sizeof(rec));
-		rec.tsr_version = TCP_STATS_VERSION;
-		rec.tsr_len = TCP_STATS_RECORD_SIZE;
-
-		if (inp->inp_vflag & INP_IPV6) {
-			rec.tsr_af = AF_INET6;
-			rec.tsr_flags |= TSR_F_IPV6;
-		} else {
-			rec.tsr_af = AF_INET;
-		}
-
-		rec.tsr_local_port = ntohs(inp->inp_lport);
-		rec.tsr_remote_port = ntohs(inp->inp_fport);
+		tcpstats_fill_record(&rec, inp);
 
 		error = uiomove(&rec, sizeof(rec), uio);
 		if (error != 0) {
