@@ -71,14 +71,14 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| Write rejected? | |
-| No crash on close? | |
-| Memory freed? (`vmstat -m`) | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Write rejected? | Yes -- `echo test > /dev/tcpstats` returns "Operation not permitted" (EPERM) |
+| No crash on close? | Yes -- `cat /dev/tcpstats` opens+closes cleanly (returns ENODEV from missing d_read) |
+| Memory freed? (`vmstat -m`) | Yes -- `vmstat -m \| grep tcpstats` shows InUse=0 after close |
+| Issues | None |
+| Resolution | N/A |
+| Notes | Used `d_open_t` typedef, `devfs_set_cdevpriv` destructor pattern with `crhold`/`crfree`. |
 
 ---
 
@@ -86,14 +86,14 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| Returns 960 bytes? (3 x 320) | |
-| Version field correct? | |
-| Second read returns 0? | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Returns 960 bytes? (3 x 320) | Yes -- `dd if=/dev/tcpstats bs=960 count=1 \| wc -c` = 960 |
+| Version field correct? | Yes -- hexdump shows `01 00 00 00` (version=1), `40 01 00 00` (len=320=0x140) |
+| Second read returns 0? | Yes -- confirmed with same-fd test (`exec 3</dev/tcpstats`, two reads) |
+| Issues | `AF_INET` undefined without `<sys/socket.h>` |
+| Resolution | Added `#include <sys/socket.h>` (will be needed for Step 6 anyway) |
+| Notes | Each `dd` opens a new fd, so EOF must be tested on the same fd. Dummy ports: 1000, 1001, 1002. |
 
 ---
 
@@ -101,15 +101,15 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| Record count | |
-| `sockstat` count | |
-| Counts match? | |
-| 20-iteration stability? | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Record count | 3 (960 bytes = 3 x 320) |
+| `sockstat` count | 4 (2 x sshd-session fd-sharing same inpcb, 1 LISTEN IPv4, 1 LISTEN IPv6) |
+| Counts match? | Yes -- 3 unique inpcbs matches expected (one ESTABLISHED SSH, two LISTEN sockets) |
+| 20-iteration stability? | Yes -- all 20 completed without panic |
+| Issues | (1) First attempt panicked VM -- missing `CURVNET_SET` on VIMAGE kernel; (2) `struct prison` incomplete; (3) `cr_canseeinpcb` undeclared; (4) `const` member in `inpcb_iterator` prevents assignment to softc field |
+| Resolution | (1) Added `CURVNET_SET(TD_TO_VNET(curthread))` / `CURVNET_RESTORE()`; (2) Added `<sys/jail.h>`; (3) Added `<netinet/in_systm.h>`; (4) Changed iterator from softc field to local variable (matches `tcp_pcblist` pattern) |
+| Notes | Hexdump verified: record 0 = ESTABLISHED port 22, record 1 = LISTEN IPv4 :22, record 2 = LISTEN IPv6 :22 with TSR_F_IPV6 flag. VIMAGE support is critical on FreeBSD 15 GENERIC kernel. |
 
 ---
 
