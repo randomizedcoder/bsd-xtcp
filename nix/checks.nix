@@ -26,7 +26,7 @@ in
     pname = "${constants.pname}-clippy";
 
     buildPhase = ''
-      cargo clippy --all-targets -- -D warnings
+      cargo clippy --workspace --all-targets -- -D warnings
     '';
     installPhase = ''
       mkdir -p $out
@@ -38,7 +38,7 @@ in
     pname = "${constants.pname}-fmt";
 
     buildPhase = ''
-      cargo fmt --check
+      cargo fmt --all --check
     '';
     installPhase = ''
       mkdir -p $out
