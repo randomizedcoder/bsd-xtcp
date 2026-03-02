@@ -55,8 +55,8 @@ dkms.conf
 *.dwo
 
 # Rust
-/target
-/.cargo
+target/
+.cargo/
 *.rs.bk
 
 # Nix
