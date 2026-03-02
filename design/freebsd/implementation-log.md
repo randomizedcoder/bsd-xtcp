@@ -16,10 +16,10 @@ Each step records the date, outcome, any issues encountered, and resolution.
 | FreeBSD version | 15.0-RELEASE (GENERIC) `releng/15.0-n280995-7aedc8de6446` |
 | VM type | libvirt/KVM |
 | SSH access | `ssh root@192.168.122.41` (no password required) |
-| Kernel source path | TBD -- check with `ssh root@192.168.122.41 ls /usr/src/sys` |
-| `tcp_fill_info` exported? | TBD -- check with `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep tcp_fill_info'` |
-| `inp_next` exported? | TBD -- check with `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep inp_next'` |
-| `cr_canseeinpcb` exported? | TBD -- check with `ssh root@192.168.122.41 'nm /boot/kernel/kernel \| grep cr_canseeinpcb'` |
+| Kernel source path | `/usr/src/sys` (installed via `pkg install FreeBSD-src-sys`) |
+| `tcp_fill_info` exported? | **NO** -- lowercase `t` (static): `ffffffff80d716e0 t tcp_fill_info`. Will need direct `tcpcb` field access in Step 8. |
+| `inp_next` exported? | Yes -- uppercase `T`: `ffffffff80d382d0 T inp_next` |
+| `cr_canseeinpcb` exported? | Yes -- uppercase `T`: `ffffffff80d3a440 T cr_canseeinpcb` |
 
 ---
 
@@ -27,14 +27,14 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| Compiles? | |
-| Loads? | |
-| Unloads? | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Compiles? | Yes -- clean, no warnings with `-Werror` |
+| Loads? | Yes -- `kldload ./tcp_stats_kld.ko` succeeds, dmesg shows "tcp_stats_kld: loaded" |
+| Unloads? | Yes -- `kldunload tcp_stats_kld` succeeds, dmesg shows "tcp_stats_kld: unloaded" |
+| Issues | Kernel source not pre-installed; `rsync` not pre-installed on VM |
+| Resolution | `pkg install FreeBSD-src-sys` for headers; `pkg install rsync` for file transfer |
+| Notes | Module size 2090 bytes per kldstat. Used `DECLARE_MODULE` + `moduledata_t` pattern. |
 
 ---
 
@@ -42,13 +42,13 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| Device appears? | |
-| Device removed on unload? | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| Device appears? | Yes -- `cr--r--r-- 1 root wheel 0x76 /dev/tcpstats` |
+| Device removed on unload? | Yes -- `ls: /dev/tcpstats: No such file or directory` after kldunload |
+| Issues | None |
+| Resolution | N/A |
+| Notes | `cat /dev/tcpstats` returns "Operation not supported by device" as expected (no d_read yet). Used `MAKEDEV_ETERNAL_KLD` flag. |
 
 ---
 
@@ -56,14 +56,14 @@ Each step records the date, outcome, any issues encountered, and resolution.
 
 | Field | Value |
 |---|---|
-| Status | Not started |
-| Date | |
-| `_Static_assert` passes? | |
-| Userspace compilation? | |
-| Actual `sizeof(tcp_stats_record)` | |
-| Issues | |
-| Resolution | |
-| Notes | |
+| Status | **Complete** |
+| Date | 2025-03-01 |
+| `_Static_assert` passes? | Yes -- 320 bytes confirmed |
+| Userspace compilation? | Yes -- `cc -fsyntax-only -I/usr/include tcp_stats_kld.h` OK |
+| Actual `sizeof(tcp_stats_record)` | 320 bytes (packed) |
+| Issues | (1) `struct in_addr`/`in6_addr` incomplete in kernel context; (2) design doc spare size was 32 bytes but struct body was only 268 bytes, needed 52 bytes spare |
+| Resolution | (1) Added `#include <netinet/in.h>` in `.c` before header include; (2) Adjusted `_tsr_spare` from `[8]` to `[13]` (52 bytes) to reach exactly 320 |
+| Notes | Design doc section byte-count comments were slightly off (e.g., "Connection identity (48 bytes)" is actually 40 packed). Struct is correct at 320 total. |
 
 ---
 
