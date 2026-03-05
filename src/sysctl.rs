@@ -179,15 +179,110 @@ pub fn read_clock_hz() -> Result<i32, SysctlError> {
     Err(SysctlError::UnsupportedPlatform)
 }
 
-/// Reads `kern.osproductversion` and returns the version string.
-#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+/// Reads the OS version string.
+///
+/// - macOS: reads `kern.osproductversion` -> e.g. "15.2"
+/// - FreeBSD: reads `kern.osrelease` -> e.g. "14.3-RELEASE"
+#[cfg(target_os = "macos")]
 pub fn read_os_version() -> Result<String, SysctlError> {
     let buf = read_sysctl("kern.osproductversion")?;
     let s = String::from_utf8_lossy(&buf);
     Ok(s.trim_end_matches('\0').to_string())
 }
 
+#[cfg(target_os = "freebsd")]
+pub fn read_os_version() -> Result<String, SysctlError> {
+    let buf = read_sysctl("kern.osrelease")?;
+    let s = String::from_utf8_lossy(&buf);
+    Ok(format!("FreeBSD {}", s.trim_end_matches('\0')))
+}
+
 #[cfg(not(any(target_os = "macos", target_os = "freebsd")))]
 pub fn read_os_version() -> Result<String, SysctlError> {
+    Err(SysctlError::UnsupportedPlatform)
+}
+
+/// System-wide TCP statistics from `sysctl net.inet.tcp.stats`.
+///
+/// FreeBSD's `struct tcpstat` is an array of `uint64_t` counters.
+/// We extract the counters relevant for delta computation.
+#[derive(Debug, Clone, Default)]
+pub struct TcpSysStats {
+    pub connattempt: u64,
+    pub accepts: u64,
+    pub connects: u64,
+    pub drops: u64,
+    pub sndtotal: u64,
+    pub sndbyte: u64,
+    pub sndrexmitpack: u64,
+    pub sndrexmitbyte: u64,
+    pub rcvtotal: u64,
+    pub rcvbyte: u64,
+    pub rcvduppack: u64,
+    pub rcvbadsum: u64,
+}
+
+/// Read system-wide TCP statistics from `net.inet.tcp.stats`.
+///
+/// The FreeBSD `struct tcpstat` fields are uint64_t counters at known offsets.
+/// Field offsets (in u64 units, i.e. multiply by 8 for byte offsets):
+///   0: tcps_connattempt
+///   1: tcps_accepts
+///   2: tcps_connects
+///   3: tcps_drops
+///   ...
+///   11: tcps_sndtotal
+///   12: tcps_sndpack (data packets)
+///   13: tcps_sndbyte
+///   ...
+///   16: tcps_sndrexmitpack
+///   17: tcps_sndrexmitbyte
+///   ...
+///   24: tcps_rcvtotal
+///   25: tcps_rcvpack
+///   26: tcps_rcvbyte
+///   ...
+///   28: tcps_rcvduppack
+///   ...
+///   33: tcps_rcvbadsum
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+pub fn read_tcp_stats() -> Result<TcpSysStats, SysctlError> {
+    let buf = read_sysctl("net.inet.tcp.stats")?;
+
+    let read_u64_at = |idx: usize| -> u64 {
+        let off = idx * 8;
+        if off + 8 > buf.len() {
+            return 0;
+        }
+        u64::from_ne_bytes([
+            buf[off],
+            buf[off + 1],
+            buf[off + 2],
+            buf[off + 3],
+            buf[off + 4],
+            buf[off + 5],
+            buf[off + 6],
+            buf[off + 7],
+        ])
+    };
+
+    Ok(TcpSysStats {
+        connattempt: read_u64_at(0),
+        accepts: read_u64_at(1),
+        connects: read_u64_at(2),
+        drops: read_u64_at(3),
+        sndtotal: read_u64_at(11),
+        sndbyte: read_u64_at(13),
+        sndrexmitpack: read_u64_at(16),
+        sndrexmitbyte: read_u64_at(17),
+        rcvtotal: read_u64_at(24),
+        rcvbyte: read_u64_at(26),
+        rcvduppack: read_u64_at(28),
+        rcvbadsum: read_u64_at(33),
+    })
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "freebsd")))]
+pub fn read_tcp_stats() -> Result<TcpSysStats, SysctlError> {
     Err(SysctlError::UnsupportedPlatform)
 }

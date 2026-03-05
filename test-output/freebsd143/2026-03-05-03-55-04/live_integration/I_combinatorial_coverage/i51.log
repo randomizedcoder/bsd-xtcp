@@ -1,0 +1,4 @@
+[2026-03-05T04:04:04.734] test: I::i51
+[2026-03-05T04:04:04.734] filter: local_port=9081 local_addr=127.0.0.19 remote_addr=127.0.0.19 include_state=listen
+[2026-03-05T04:04:04.734] expected: 0 (Eq)
+[2026-03-05T04:04:04.734] result: PASS

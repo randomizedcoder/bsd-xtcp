@@ -1,0 +1,16 @@
+[server] starting on 1 port(s)
+[server] listening on [fd00::14]:9038
+[server] accepted connection 0 from [fd00::14]:32945 on port 9038
+[server] accepted connection 1 from [fd00::14]:46998 on port 9038
+[server] accepted connection 2 from [fd00::14]:47258 on port 9038
+[server] accepted connection 3 from [fd00::14]:23045 on port 9038
+[server] accepted connection 4 from [fd00::14]:34310 on port 9038
+[server] accepted connection 5 from [fd00::14]:26742 on port 9038
+[server] accepted connection 6 from [fd00::14]:14178 on port 9038
+[server] accepted connection 7 from [fd00::14]:57634 on port 9038
+[server] accepted connection 8 from [fd00::14]:48487 on port 9038
+[server] accepted connection 9 from [fd00::14]:48533 on port 9038
+[server] connection 0 closed by peer
+[server] connection 1 closed by peer
+[server] connection 4 closed by peer
+[server] connection 5 closed by peer

@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "utils/tcp-echo"]
+members = [".", "utils/tcp-echo", "utils/tcp-stats-kld-exporter", "tests/kmod-integration"]
 resolver = "2"
 
 [package]

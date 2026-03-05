@@ -1,0 +1,59 @@
+[server] starting on 3 port(s)
+[server] listening on 127.0.0.10:9111
+[server] listening on 127.0.0.10:9112
+[server] listening on 127.0.0.10:9113
+[server] accepted connection 0 from 127.0.0.10:37626 on port 9112
+[server] accepted connection 1 from 127.0.0.10:64254 on port 9111
+[server] accepted connection 2 from 127.0.0.10:33353 on port 9113
+[server] accepted connection 3 from 127.0.0.10:60520 on port 9111
+[server] accepted connection 4 from 127.0.0.10:19723 on port 9112
+[server] accepted connection 5 from 127.0.0.10:13529 on port 9113
+[server] accepted connection 6 from 127.0.0.10:56698 on port 9111
+[server] accepted connection 7 from 127.0.0.10:41820 on port 9112
+[server] accepted connection 8 from 127.0.0.10:36851 on port 9113
+[server] accepted connection 9 from 127.0.0.10:61884 on port 9111
+[server] accepted connection 10 from 127.0.0.10:57500 on port 9112
+[server] accepted connection 11 from 127.0.0.10:37316 on port 9113
+[server] accepted connection 12 from 127.0.0.10:54083 on port 9111
+[server] accepted connection 13 from 127.0.0.10:48581 on port 9112
+[server] accepted connection 14 from 127.0.0.10:40733 on port 9113
+[server] accepted connection 15 from 127.0.0.10:11450 on port 9111
+[server] accepted connection 17 from 127.0.0.10:19621 on port 9112
+[server] accepted connection 16 from 127.0.0.10:45787 on port 9113
+[server] accepted connection 18 from 127.0.0.10:22007 on port 9111
+[server] accepted connection 19 from 127.0.0.10:50023 on port 9112
+[server] accepted connection 20 from 127.0.0.10:47799 on port 9111
+[server] accepted connection 21 from 127.0.0.10:48879 on port 9113
+[server] accepted connection 22 from 127.0.0.10:45333 on port 9113
+[server] accepted connection 23 from 127.0.0.10:27901 on port 9112
+[server] accepted connection 24 from 127.0.0.10:26875 on port 9112
+[server] accepted connection 25 from 127.0.0.10:49918 on port 9111
+[server] accepted connection 26 from 127.0.0.10:27090 on port 9113
+[server] accepted connection 27 from 127.0.0.10:51950 on port 9111
+[server] accepted connection 28 from 127.0.0.10:57507 on port 9113
+[server] accepted connection 29 from 127.0.0.10:38052 on port 9112
+[server] connection 1 closed by peer
+[server] connection 6 closed by peer
+[server] connection 10 closed by peer
+[server] connection 4 closed by peer
+[server] connection 11 closed by peer
+[server] connection 0 closed by peer
+[server] connection 19 closed by peer
+[server] connection 5 closed by peer
+[server] connection 2 closed by peer
+[server] connection 18 closed by peer
+[server] connection 23 closed by peer
+[server] connection 29 closed by peer
+[server] connection 27 closed by peer
+[server] connection 3 closed by peer
+[server] connection 16 closed by peer
+[server] connection 25 closed by peer
+[server] connection 7 closed by peer
+[server] connection 12 closed by peer
+[server] connection 21 closed by peer
+[server] connection 24 closed by peer
+[server] connection 28 closed by peer
+[server] connection 15 closed by peer
+[server] connection 9 closed by peer
+[server] connection 13 closed by peer
+[server] connection 14 closed by peer

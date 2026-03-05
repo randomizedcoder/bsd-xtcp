@@ -1,0 +1,70 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.18:9073
+[server] accepted connection 0 from 127.0.0.18:10747 on port 9073
+[server] accepted connection 1 from 127.0.0.18:7583 on port 9073
+[server] accepted connection 2 from 127.0.0.18:62972 on port 9073
+[server] accepted connection 3 from 127.0.0.18:42539 on port 9073
+[server] accepted connection 4 from 127.0.0.18:63919 on port 9073
+[server] accepted connection 5 from 127.0.0.18:4360 on port 9073
+[server] accepted connection 6 from 127.0.0.18:65157 on port 9073
+[server] accepted connection 7 from 127.0.0.18:36677 on port 9073
+[server] accepted connection 8 from 127.0.0.18:50030 on port 9073
+[server] accepted connection 9 from 127.0.0.18:6709 on port 9073
+[server] accepted connection 10 from 127.0.0.18:39251 on port 9073
+[server] accepted connection 11 from 127.0.0.18:46909 on port 9073
+[server] accepted connection 12 from 127.0.0.18:64562 on port 9073
+[server] accepted connection 13 from 127.0.0.18:18599 on port 9073
+[server] accepted connection 14 from 127.0.0.18:61266 on port 9073
+[server] accepted connection 15 from 127.0.0.18:49288 on port 9073
+[server] accepted connection 16 from 127.0.0.18:36695 on port 9073
+[server] accepted connection 17 from 127.0.0.18:37000 on port 9073
+[server] accepted connection 18 from 127.0.0.18:17533 on port 9073
+[server] accepted connection 19 from 127.0.0.18:30210 on port 9073
+[server] accepted connection 20 from 127.0.0.18:34022 on port 9073
+[server] accepted connection 21 from 127.0.0.18:33461 on port 9073
+[server] accepted connection 22 from 127.0.0.18:30752 on port 9073
+[server] accepted connection 23 from 127.0.0.18:41322 on port 9073
+[server] accepted connection 24 from 127.0.0.18:48273 on port 9073
+[server] accepted connection 25 from 127.0.0.18:3670 on port 9073
+[server] accepted connection 26 from 127.0.0.18:58162 on port 9073
+[server] accepted connection 27 from 127.0.0.18:38074 on port 9073
+[server] accepted connection 28 from 127.0.0.18:48009 on port 9073
+[server] accepted connection 29 from 127.0.0.18:64912 on port 9073
+[server] accepted connection 30 from 127.0.0.18:17657 on port 9073
+[server] accepted connection 31 from 127.0.0.18:23815 on port 9073
+[server] accepted connection 32 from 127.0.0.18:35920 on port 9073
+[server] accepted connection 33 from 127.0.0.18:62474 on port 9073
+[server] accepted connection 34 from 127.0.0.18:61025 on port 9073
+[server] accepted connection 35 from 127.0.0.18:29710 on port 9073
+[server] accepted connection 36 from 127.0.0.18:11364 on port 9073
+[server] accepted connection 37 from 127.0.0.18:29529 on port 9073
+[server] connection 2 closed by peer
+[server] connection 6 closed by peer
+[server] connection 3 closed by peer
+[server] connection 16 closed by peer
+[server] connection 15 closed by peer
+[server] connection 22 closed by peer
+[server] connection 32 closed by peer
+[server] connection 17 closed by peer
+[server] connection 26 closed by peer
+[server] connection 25 closed by peer
+[server] connection 31 closed by peer
+[server] connection 30 closed by peer
+[server] connection 21 closed by peer
+[server] connection 19 closed by peer
+[server] connection 36 closed by peer
+[server] connection 12 closed by peer
+[server] connection 24 closed by peer
+[server] connection 33 closed by peer
+[server] connection 0 closed by peer
+[server] connection 8 closed by peer
+[server] connection 1 closed by peer
+[server] connection 11 closed by peer
+[server] connection 20 closed by peer
+[server] connection 29 closed by peer
+[server] connection 4 closed by peer
+[server] connection 7 closed by peer
+[server] connection 10 closed by peer
+[server] connection 13 closed by peer
+[server] connection 18 closed by peer
+[server] connection 14 closed by peer

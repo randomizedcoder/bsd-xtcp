@@ -1,0 +1,22 @@
+[server] starting on 1 port(s)
+[server] listening on [fd00::10]:9022
+[server] accepted connection 0 from [fd00::10]:60156 on port 9022
+[server] accepted connection 1 from [fd00::10]:28908 on port 9022
+[server] accepted connection 2 from [fd00::10]:30194 on port 9022
+[server] accepted connection 3 from [fd00::10]:54216 on port 9022
+[server] accepted connection 4 from [fd00::10]:4625 on port 9022
+[server] accepted connection 5 from [fd00::10]:50901 on port 9022
+[server] accepted connection 6 from [fd00::10]:61042 on port 9022
+[server] accepted connection 7 from [fd00::10]:61907 on port 9022
+[server] accepted connection 8 from [fd00::10]:58013 on port 9022
+[server] accepted connection 9 from [fd00::10]:48938 on port 9022
+[server] connection 0 closed by peer
+[server] connection 1 closed by peer
+[server] connection 2 closed by peer
+[server] connection 9 closed by peer
+[server] connection 4 closed by peer
+[server] connection 6 closed by peer
+[server] connection 5 closed by peer
+[server] connection 8 closed by peer
+[server] connection 7 closed by peer
+[server] connection 3 closed by peer

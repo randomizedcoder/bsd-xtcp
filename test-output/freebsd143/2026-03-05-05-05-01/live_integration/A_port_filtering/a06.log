@@ -1,0 +1,4 @@
+[2026-03-05T05:06:05.830] test: A::a06
+[2026-03-05T05:06:05.830] filter: local_addr=127.0.0.10 local_port=9107 remote_port=9107
+[2026-03-05T05:06:05.830] expected: 0 (Eq)
+[2026-03-05T05:06:05.830] result: PASS

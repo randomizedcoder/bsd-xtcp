@@ -1,0 +1,4 @@
+[2026-03-05T03:58:35.556] test: B::b06
+[2026-03-05T03:58:35.556] filter: local_addr=127.0.0.11 local_port=9014 include_state=established,listen
+[2026-03-05T03:58:35.556] expected: 21 (Eq)
+[2026-03-05T03:58:35.556] result: PASS

@@ -1,0 +1,22 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.12:9025
+[server] accepted connection 0 from 127.0.0.12:55592 on port 9025
+[server] accepted connection 1 from 127.0.0.12:32302 on port 9025
+[server] accepted connection 2 from 127.0.0.12:5454 on port 9025
+[server] accepted connection 3 from 127.0.0.12:53855 on port 9025
+[server] accepted connection 4 from 127.0.0.12:20978 on port 9025
+[server] accepted connection 5 from 127.0.0.12:46347 on port 9025
+[server] accepted connection 6 from 127.0.0.12:30152 on port 9025
+[server] accepted connection 7 from 127.0.0.12:17607 on port 9025
+[server] accepted connection 8 from 127.0.0.12:5264 on port 9025
+[server] accepted connection 9 from 127.0.0.12:27586 on port 9025
+[server] connection 0 closed by peer
+[server] connection 2 closed by peer
+[server] connection 1 closed by peer
+[server] connection 6 closed by peer
+[server] connection 3 closed by peer
+[server] connection 4 closed by peer
+[server] connection 7 closed by peer
+[server] connection 8 closed by peer
+[server] connection 5 closed by peer
+[server] connection 9 closed by peer

@@ -1,0 +1,42 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.10:9124
+[server] accepted connection 0 from 127.0.0.10:23998 on port 9124
+[server] accepted connection 1 from 127.0.0.10:62656 on port 9124
+[server] accepted connection 2 from 127.0.0.10:51140 on port 9124
+[server] accepted connection 3 from 127.0.0.10:50638 on port 9124
+[server] accepted connection 4 from 127.0.0.10:63920 on port 9124
+[server] accepted connection 5 from 127.0.0.10:17263 on port 9124
+[server] accepted connection 6 from 127.0.0.10:16192 on port 9124
+[server] accepted connection 7 from 127.0.0.10:50893 on port 9124
+[server] accepted connection 8 from 127.0.0.10:32910 on port 9124
+[server] accepted connection 9 from 127.0.0.10:62894 on port 9124
+[server] accepted connection 10 from 127.0.0.10:29175 on port 9124
+[server] accepted connection 11 from 127.0.0.10:12216 on port 9124
+[server] accepted connection 12 from 127.0.0.10:45611 on port 9124
+[server] accepted connection 13 from 127.0.0.10:11279 on port 9124
+[server] accepted connection 14 from 127.0.0.10:42543 on port 9124
+[server] accepted connection 15 from 127.0.0.10:56153 on port 9124
+[server] accepted connection 16 from 127.0.0.10:41883 on port 9124
+[server] accepted connection 17 from 127.0.0.10:14071 on port 9124
+[server] accepted connection 18 from 127.0.0.10:13781 on port 9124
+[server] accepted connection 19 from 127.0.0.10:39904 on port 9124
+[server] connection 0 closed by peer
+[server] connection 16 closed by peer
+[server] connection 7 closed by peer
+[server] connection 9 closed by peer
+[server] connection 19 closed by peer
+[server] connection 18 closed by peer
+[server] connection 5 closed by peer
+[server] connection 11 closed by peer
+[server] connection 17 closed by peer
+[server] connection 8 closed by peer
+[server] connection 10 closed by peer
+[server] connection 6 closed by peer
+[server] connection 2 closed by peer
+[server] connection 12 closed by peer
+[server] connection 13 closed by peer
+[server] connection 14 closed by peer
+[server] connection 1 closed by peer
+[server] connection 4 closed by peer
+[server] connection 3 closed by peer
+[server] connection 15 closed by peer

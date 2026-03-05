@@ -1,0 +1,4 @@
+[2026-03-05T03:59:01.804] test: B::b08
+[2026-03-05T03:59:01.804] filter: local_addr=127.0.0.11 local_port=9016 include_state=syn_sent
+[2026-03-05T03:59:01.804] expected: 0 (Eq)
+[2026-03-05T03:59:01.804] result: PASS

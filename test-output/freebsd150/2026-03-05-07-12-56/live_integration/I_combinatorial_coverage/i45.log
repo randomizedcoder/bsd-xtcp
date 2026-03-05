@@ -1,0 +1,4 @@
+[2026-03-05T07:23:25.604] test: I::i45
+[2026-03-05T07:23:25.604] filter: remote_port=9081 local_addr=127.0.0.19 include_state=established ipv4_only
+[2026-03-05T07:23:25.604] expected: 10 (Eq)
+[2026-03-05T07:23:25.604] result: PASS

@@ -1,0 +1,12 @@
+[client] target: 127.0.0.10:{60000}, connections: 10, rate: 1024 B/s, ramp: 1s
+[client] connection 0 established to 127.0.0.10:60000
+[client] connection 1 established to 127.0.0.10:60000
+[client] connection 2 established to 127.0.0.10:60000
+[client] connection 3 established to 127.0.0.10:60000
+[client] connection 4 established to 127.0.0.10:60000
+[client] connection 5 established to 127.0.0.10:60000
+[client] connection 6 established to 127.0.0.10:60000
+[client] connection 7 established to 127.0.0.10:60000
+[client] connection 8 established to 127.0.0.10:60000
+[client] connection 9 established to 127.0.0.10:60000
+[client] all connections established, running...

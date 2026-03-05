@@ -1,5 +1,9 @@
+#[cfg(target_os = "macos")]
 pub mod macos;
 pub mod macos_layout;
+
+pub mod freebsd;
+pub mod freebsd_layout;
 
 #[cfg(not(any(target_os = "macos", target_os = "freebsd")))]
 pub mod stub;
@@ -26,6 +30,21 @@ pub enum CollectError {
     #[error("unknown record kind {kind:#x} at offset {offset}")]
     UnknownKind { offset: usize, kind: u32 },
 
+    #[error("failed to open device {path}: {source}")]
+    DeviceOpen {
+        path: String,
+        source: std::io::Error,
+    },
+
+    #[error("device read failed: {source}")]
+    DeviceRead { source: std::io::Error },
+
+    #[error("ioctl {cmd:#x} failed: {source}")]
+    Ioctl { cmd: u64, source: std::io::Error },
+
+    #[error("version mismatch: expected {expected}, got {got}")]
+    VersionMismatch { expected: u32, got: u32 },
+
     #[error("platform not supported")]
     UnsupportedPlatform,
 }
@@ -40,12 +59,17 @@ pub struct CollectionResult {
 
 /// Collect TCP socket records from the kernel.
 ///
-/// On macOS/FreeBSD, reads `net.inet.tcp.pcblist_n` and parses the tagged binary stream.
+/// On macOS, reads `net.inet.tcp.pcblist_n` and parses the tagged binary stream.
+/// On FreeBSD, reads `/dev/tcpstats` kernel module and enriches with kern.file PID mapping.
 /// On other platforms, returns `Err(CollectError::UnsupportedPlatform)`.
 pub fn collect_tcp_sockets() -> Result<CollectionResult, CollectError> {
-    #[cfg(any(target_os = "macos", target_os = "freebsd"))]
+    #[cfg(target_os = "macos")]
     {
         macos::collect()
+    }
+    #[cfg(target_os = "freebsd")]
+    {
+        freebsd::collect()
     }
     #[cfg(not(any(target_os = "macos", target_os = "freebsd")))]
     {

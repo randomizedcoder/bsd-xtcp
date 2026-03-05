@@ -2,7 +2,18 @@
 #define _TCP_STATS_KLD_H_
 
 #include <sys/types.h>
+
+#ifdef __FreeBSD__
 #include <sys/ioccom.h>
+#else
+/* Linux/macOS userspace: provide ioctl macro stubs for struct definitions */
+#ifndef _IOC
+#define _IOC(inout,group,num,len) ((unsigned long)(inout) | ((len) << 16) | ((group) << 8) | (num))
+#define _IO(g,n) _IOC(0,(g),(n),0)
+#define _IOR(g,n,t) _IOC(0,(g),(n),sizeof(t))
+#define _IOW(g,n,t) _IOC(0,(g),(n),sizeof(t))
+#endif
+#endif
 
 #ifndef _KERNEL
 #include <netinet/in.h>
@@ -134,13 +145,79 @@ struct tcpstats_version {
     uint32_t    flags;
 };
 
+/* --- Filter struct v2 --- */
+#define TSF_VERSION             2
+#define TSF_MAX_PORTS           8
+
+/*
+ * Socket filter — configurable via ioctl or sysctl-created named profiles.
+ *
+ * All conditions are ANDed. Empty/zero fields mean "match any".
+ * Port arrays use network byte order. A port value of 0 means "unused slot".
+ *
+ * Version 2: adds CIDR masks, include_state mode, expanded exclude flags.
+ */
 struct tcpstats_filter {
-    uint16_t    state_mask;     /* Bitmask of (1 << TCPS_*) to include; 0xFFFF=all */
-    uint16_t    _pad;
+    /* Version for forward compatibility */
+    uint32_t    version;                /* Must be TSF_VERSION */
+
+    /* State filter */
+    uint16_t    state_mask;             /* Bitmask of (1 << TCPS_*); 0xFFFF = all */
+    uint16_t    _pad0;
     uint32_t    flags;
-#define TSF_EXCLUDE_LISTEN   0x01
-#define TSF_EXCLUDE_TIMEWAIT 0x02
+
+/* Exclude flags (one per TCP state) */
+#define TSF_EXCLUDE_CLOSED      0x00000001
+#define TSF_EXCLUDE_LISTEN      0x00000002
+#define TSF_EXCLUDE_SYN_SENT    0x00000004
+#define TSF_EXCLUDE_SYN_RCVD    0x00000008
+#define TSF_EXCLUDE_ESTABLISHED 0x00000010
+#define TSF_EXCLUDE_CLOSE_WAIT  0x00000020
+#define TSF_EXCLUDE_FIN_WAIT_1  0x00000040
+#define TSF_EXCLUDE_CLOSING     0x00000080
+#define TSF_EXCLUDE_LAST_ACK    0x00000100
+#define TSF_EXCLUDE_FIN_WAIT_2  0x00000200
+#define TSF_EXCLUDE_TIME_WAIT   0x00000400
+
+/* Mode flags */
+#define TSF_STATE_INCLUDE_MODE  0x00001000
+#define TSF_LOCAL_PORT_MATCH    0x00002000
+#define TSF_REMOTE_PORT_MATCH   0x00004000
+#define TSF_LOCAL_ADDR_MATCH    0x00008000
+#define TSF_REMOTE_ADDR_MATCH   0x00010000
+#define TSF_IPV4_ONLY           0x00020000
+#define TSF_IPV6_ONLY           0x00040000
+
+    /* Port filters — match if socket port is ANY of the listed ports */
+    uint16_t    local_ports[TSF_MAX_PORTS];     /* Network byte order; 0 = unused */
+    uint16_t    remote_ports[TSF_MAX_PORTS];    /* Network byte order; 0 = unused */
+
+    /* IPv4 address filters with CIDR mask */
+    struct in_addr  local_addr_v4;
+    struct in_addr  local_mask_v4;
+    struct in_addr  remote_addr_v4;
+    struct in_addr  remote_mask_v4;
+
+    /* IPv6 address filters with prefix length */
+    struct in6_addr local_addr_v6;
+    uint8_t         local_prefix_v6;
+    uint8_t         _pad1[3];
+    struct in6_addr remote_addr_v6;
+    uint8_t         remote_prefix_v6;
+    uint8_t         _pad2[3];
+
+    /* Field mask and format */
+    uint32_t    field_mask;
+    uint32_t    format;
+#define TSF_FORMAT_COMPACT      0
+#define TSF_FORMAT_FULL         1
+
+    /* Spare for future expansion */
+    uint32_t    _spare[4];
 };
+
+_Static_assert(sizeof(struct tcpstats_filter) <= 256,
+    "tcpstats_filter exceeds maximum profile size");
 
 #define TCPSTATS_VERSION_CMD  _IOR('T', 1, struct tcpstats_version)
 #define TCPSTATS_SET_FILTER   _IOW('T', 2, struct tcpstats_filter)

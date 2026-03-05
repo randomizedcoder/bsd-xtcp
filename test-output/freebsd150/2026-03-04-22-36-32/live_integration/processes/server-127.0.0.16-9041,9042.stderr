@@ -1,0 +1,81 @@
+[server] starting on 2 port(s)
+[server] listening on 127.0.0.16:9041
+[server] listening on 127.0.0.16:9042
+[server] accepted connection 0 from 127.0.0.16:24479 on port 9041
+[server] accepted connection 1 from 127.0.0.16:11636 on port 9042
+[server] accepted connection 2 from 127.0.0.16:29680 on port 9041
+[server] accepted connection 3 from 127.0.0.16:20264 on port 9042
+[server] accepted connection 4 from 127.0.0.16:6541 on port 9041
+[server] accepted connection 5 from 127.0.0.16:37113 on port 9042
+[server] accepted connection 6 from 127.0.0.16:15582 on port 9042
+[server] accepted connection 7 from 127.0.0.16:17131 on port 9041
+[server] accepted connection 8 from 127.0.0.16:57993 on port 9042
+[server] accepted connection 9 from 127.0.0.16:5604 on port 9041
+[server] accepted connection 10 from 127.0.0.16:50283 on port 9042
+[server] accepted connection 11 from 127.0.0.16:34395 on port 9041
+[server] accepted connection 12 from 127.0.0.16:43674 on port 9042
+[server] accepted connection 13 from 127.0.0.16:40282 on port 9041
+[server] accepted connection 14 from 127.0.0.16:40531 on port 9042
+[server] accepted connection 15 from 127.0.0.16:33787 on port 9041
+[server] accepted connection 16 from 127.0.0.16:43830 on port 9042
+[server] accepted connection 17 from 127.0.0.16:49860 on port 9041
+[server] accepted connection 18 from 127.0.0.16:33423 on port 9041
+[server] accepted connection 19 from 127.0.0.16:27425 on port 9042
+[server] accepted connection 20 from 127.0.0.16:63199 on port 9042
+[server] accepted connection 21 from 127.0.0.16:16365 on port 9041
+[server] accepted connection 22 from 127.0.0.16:34492 on port 9042
+[server] accepted connection 23 from 127.0.0.16:37143 on port 9041
+[server] accepted connection 24 from 127.0.0.16:5309 on port 9042
+[server] accepted connection 25 from 127.0.0.16:27975 on port 9041
+[server] accepted connection 26 from 127.0.0.16:4466 on port 9042
+[server] accepted connection 27 from 127.0.0.16:41140 on port 9041
+[server] accepted connection 28 from 127.0.0.16:55961 on port 9042
+[server] accepted connection 29 from 127.0.0.16:60383 on port 9041
+[server] accepted connection 30 from 127.0.0.16:50315 on port 9042
+[server] accepted connection 31 from 127.0.0.16:60115 on port 9041
+[server] accepted connection 32 from 127.0.0.16:29029 on port 9042
+[server] accepted connection 33 from 127.0.0.16:37089 on port 9041
+[server] accepted connection 34 from 127.0.0.16:60713 on port 9041
+[server] accepted connection 35 from 127.0.0.16:9021 on port 9042
+[server] accepted connection 36 from 127.0.0.16:32677 on port 9041
+[server] accepted connection 37 from 127.0.0.16:41879 on port 9042
+[server] connection 1 closed by peer
+[server] connection 10 closed by peer
+[server] connection 2 closed by peer
+[server] connection 11 closed by peer
+[server] connection 5 closed by peer
+[server] connection 24 closed by peer
+[server] connection 17 closed by peer
+[server] connection 27 closed by peer
+[server] connection 16 closed by peer
+[server] connection 29 closed by peer
+[server] connection 34 closed by peer
+[server] connection 12 closed by peer
+[server] connection 7 closed by peer
+[server] connection 31 closed by peer
+[server] connection 25 closed by peer
+[server] connection 13 closed by peer
+[server] connection 14 closed by peer
+[server] connection 19 closed by peer
+[server] connection 18 closed by peer
+[server] connection 37 closed by peer
+[server] connection 26 closed by peer
+[server] connection 35 closed by peer
+[server] connection 36 closed by peer
+[server] connection 3 closed by peer
+[server] connection 22 closed by peer
+[server] connection 6 closed by peer
+[server] connection 8 closed by peer
+[server] connection 15 closed by peer
+[server] connection 30 closed by peer
+[server] connection 28 closed by peer
+[server] connection 4 closed by peer
+[server] connection 0 closed by peer
+[server] connection 20 closed by peer
+[server] connection 21 closed by peer
+[server] connection 9 closed by peer
+[server] connection 32 closed by peer
+[server] connection 33 closed by peer
+[server] connection 23 closed by peer
+[server] accepted connection 38 from 127.0.0.16:40190 on port 9042
+[server] accepted connection 39 from 127.0.0.16:35911 on port 9041

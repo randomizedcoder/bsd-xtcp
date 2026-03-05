@@ -48,3 +48,9 @@ tcp-echo-cross-aarch64-darwin:
 
 clean:
 	rm -f result result-*
+
+freebsd150:
+	ssh root@192.168.122.41
+
+freebsd143:
+	ssh root@192.168.122.27

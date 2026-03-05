@@ -1,0 +1,4 @@
+[2026-03-05T04:04:04.713] test: I::i23
+[2026-03-05T04:04:04.713] filter: remote_port=9081 ipv6_only local_addr=fd00::19
+[2026-03-05T04:04:04.713] expected: 0 (Eq)
+[2026-03-05T04:04:04.713] result: PASS

@@ -1,0 +1,4 @@
+[2026-03-05T05:12:42.446] test: F::f01
+[2026-03-05T05:12:42.446] filter: local_addr=127.0.0.17 local_port=9051 fields=identity,state
+[2026-03-05T05:12:42.446] expected: 21 (Eq)
+[2026-03-05T05:12:42.446] result: PASS

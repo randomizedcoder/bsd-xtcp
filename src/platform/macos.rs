@@ -2,16 +2,16 @@ use crate::platform::macos_layout::*;
 use crate::platform::CollectError;
 use crate::record::{IpAddr, RawSocketRecord};
 
-#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+#[cfg(target_os = "macos")]
 use crate::platform::CollectionResult;
 
-#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+#[cfg(target_os = "macos")]
 const PCBLIST_SYSCTL: &str = "net.inet.tcp.pcblist_n";
-#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+#[cfg(target_os = "macos")]
 const MAX_RETRIES: u32 = 3;
 
 /// Collect TCP socket records from the macOS kernel via pcblist_n.
-#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+#[cfg(target_os = "macos")]
 pub fn collect() -> Result<CollectionResult, CollectError> {
     use crate::sysctl;
 

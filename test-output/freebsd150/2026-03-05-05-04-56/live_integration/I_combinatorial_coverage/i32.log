@@ -1,0 +1,4 @@
+[2026-03-05T05:14:18.947] test: I::i32
+[2026-03-05T05:14:18.947] filter: local_addr=127.0.0.19 include_state=established ipv4_only
+[2026-03-05T05:14:18.947] expected: 40 (Eq)
+[2026-03-05T05:14:18.947] result: PASS

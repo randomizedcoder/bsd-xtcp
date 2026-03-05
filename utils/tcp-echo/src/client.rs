@@ -94,9 +94,14 @@ pub fn run(config: ClientConfig) -> Result<()> {
         }
 
         let port = config.ports[i as usize % config.ports.len()];
-        let addr: SocketAddr = format!("{}:{}", config.host, port)
+        let addr_str = if config.host.contains(':') {
+            format!("[{}]:{}", config.host, port)
+        } else {
+            format!("{}:{}", config.host, port)
+        };
+        let addr: SocketAddr = addr_str
             .parse()
-            .with_context(|| format!("invalid target address {}:{}", config.host, port))?;
+            .with_context(|| format!("invalid target address {}", addr_str))?;
 
         let conn_id = NEXT_CONN_ID.fetch_add(1, Ordering::Relaxed);
         let limiter = Arc::clone(&rate_limiter);
@@ -121,6 +126,7 @@ pub fn run(config: ClientConfig) -> Result<()> {
                 let write_data = Arc::clone(&data);
                 let writer = thread::Builder::new()
                     .name(format!("writer-{conn_id}"))
+                    .stack_size(65536)
                     .spawn(move || {
                         writer_loop(write_stream, &write_stats, &write_limiter, &write_data);
                     })
@@ -130,6 +136,7 @@ pub fn run(config: ClientConfig) -> Result<()> {
                 let read_stats = Arc::clone(&stats);
                 let reader = thread::Builder::new()
                     .name(format!("reader-{conn_id}"))
+                    .stack_size(65536)
                     .spawn(move || {
                         reader_loop(stream, &read_stats);
                     })
@@ -212,7 +219,7 @@ fn writer_loop(
 /// Reader thread: drain echoed data from the server.
 fn reader_loop(mut stream: TcpStream, stats: &ConnectionStats) {
     let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
-    let mut buf = [0u8; 65536];
+    let mut buf = [0u8; 8192];
 
     while !shutdown::is_shutdown() {
         match stream.read(&mut buf) {
