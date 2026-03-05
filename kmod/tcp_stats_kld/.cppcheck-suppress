@@ -1,0 +1,8 @@
+// FreeBSD kernel headers are not available on Linux — suppress system include warnings.
+missingIncludeSystem
+
+// Kernel module callbacks registered via cdevsw/DECLARE_MODULE — not directly called.
+unusedFunction:tcp_stats_kld.c
+
+// Expected with --force multi-config mode (checks all #ifdef paths).
+ConfigurationNotChecked

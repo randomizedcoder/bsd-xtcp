@@ -1,6 +1,10 @@
 .PHONY: build build-tcp-echo test clippy fmt check clean \
        cross-x86_64-darwin cross-aarch64-darwin cross-all \
-       tcp-echo-cross-x86_64-darwin tcp-echo-cross-aarch64-darwin
+       tcp-echo-cross-x86_64-darwin tcp-echo-cross-aarch64-darwin \
+       kmod-analysis-gcc-warnings kmod-analysis-gcc-fanalyzer \
+       kmod-analysis-scan-build kmod-analysis-clang-tidy \
+       kmod-analysis-cppcheck kmod-analysis-semgrep \
+       kmod-analysis-flawfinder kmod-analysis-all analyze
 
 # Native builds
 build:
@@ -48,6 +52,33 @@ tcp-echo-cross-aarch64-darwin:
 
 clean:
 	rm -f result result-*
+
+# C static analysis (kmod)
+kmod-analysis-gcc-warnings:
+	nix run .#kmod-analysis-gcc-warnings
+
+kmod-analysis-gcc-fanalyzer:
+	nix run .#kmod-analysis-gcc-fanalyzer
+
+kmod-analysis-scan-build:
+	nix run .#kmod-analysis-scan-build
+
+kmod-analysis-clang-tidy:
+	nix run .#kmod-analysis-clang-tidy
+
+kmod-analysis-cppcheck:
+	nix run .#kmod-analysis-cppcheck
+
+kmod-analysis-semgrep:
+	nix run .#kmod-analysis-semgrep
+
+kmod-analysis-flawfinder:
+	nix run .#kmod-analysis-flawfinder
+
+kmod-analysis-all:
+	nix run .#kmod-analysis-all
+
+analyze: kmod-analysis-all
 
 freebsd150:
 	ssh root@192.168.122.41

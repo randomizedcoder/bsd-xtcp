@@ -20,6 +20,15 @@
 #     kmod-test-bench             Filter parser benchmark
 #     kmod-test-callgrind         Callgrind CPU profiling (Linux only)
 #     kmod-test-all               All kmod tests sequentially
+#     kmod-analysis-gcc-warnings  GCC max warnings + -Werror
+#     kmod-analysis-gcc-fanalyzer GCC -fanalyzer interprocedural analysis
+#     kmod-analysis-scan-build    Clang Static Analyzer
+#     kmod-analysis-clang-tidy    clang-tidy (bugprone, cert, security)
+#     kmod-analysis-cppcheck      Cppcheck --enable=all --force
+#     kmod-analysis-infer         Meta Infer (conditional availability)
+#     kmod-analysis-semgrep       Semgrep with custom kernel rules
+#     kmod-analysis-flawfinder    CWE-oriented source scanner
+#     kmod-analysis-all           All C static analyzers
 #     bsd-xtcp-freebsd            Deploy + build + test bsd-xtcp on ALL FreeBSD VMs
 #     bsd-xtcp-freebsd150         Deploy + build + test on FreeBSD 15.0 only
 #     bsd-xtcp-freebsd143         Deploy + build + test on FreeBSD 14.3 only
@@ -114,6 +123,10 @@
         };
 
         kmodTests = import ./nix/kmod-tests.nix {
+          inherit pkgs src;
+        };
+
+        kmodAnalysis = import ./nix/kmod-analysis.nix {
           inherit pkgs src;
         };
 
@@ -267,7 +280,7 @@
           tcp-echo = tcpEcho;
           tcp-stats-kld-exporter = tcpStatsKldExporter;
           proto = proto;
-        } // kmodTests // freebsdDeploy // freebsdIntegration // exporterDeploy // crossPackages // tcpEchoCrossPackages // crossAll;
+        } // kmodTests // kmodAnalysis // freebsdDeploy // freebsdIntegration // exporterDeploy // crossPackages // tcpEchoCrossPackages // crossAll;
 
         apps = crossApps // freebsdApps // integrationApps // exporterApps;
 

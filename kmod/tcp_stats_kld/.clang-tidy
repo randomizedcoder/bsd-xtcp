@@ -1,0 +1,26 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-braces-around-statements,
+  readability-misleading-indentation,
+  readability-non-const-parameter,
+  readability-redundant-declaration,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-reserved-identifier,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  -misc-unused-parameters,
+  -readability-magic-numbers
+HeaderFilterRegex: 'tcp_stats_.*\.h$'
+CheckOptions:
+  - key: bugprone-assert-side-effect.AssertMacros
+    value: 'KASSERT'
+  - key: bugprone-sizeof-expression.WarnOnSizeOfIntegerExpression
+    value: 'true'

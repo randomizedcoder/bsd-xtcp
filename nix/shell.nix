@@ -11,6 +11,9 @@ let
   analysisPkgs = builtins.filter (p: p != null)
     (map tryPkg constants.analysisTools);
 
+  cAnalysisPkgs = builtins.filter (p: p != null)
+    (map tryPkg constants.cAnalysisTools);
+
   linuxProfilingPkgs = pkgs.lib.optionals pkgs.stdenv.isLinux [
     pkgs.perf
     pkgs.heaptrack
@@ -34,6 +37,7 @@ pkgs.mkShell {
   ]
   ++ securityPkgs
   ++ analysisPkgs
+  ++ cAnalysisPkgs
   ++ linuxProfilingPkgs
   ++ freebsdCrossPkgs
   ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.lldb ]
