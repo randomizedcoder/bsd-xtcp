@@ -1,0 +1,24 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.10:9106
+[server] accepted connection 0 from 127.0.0.10:18772 on port 9106
+[server] accepted connection 1 from 127.0.0.10:46749 on port 9106
+[server] accepted connection 2 from 127.0.0.10:52192 on port 9106
+[server] accepted connection 3 from 127.0.0.10:33256 on port 9106
+[server] accepted connection 4 from 127.0.0.10:21631 on port 9106
+[server] accepted connection 5 from 127.0.0.10:27531 on port 9106
+[server] accepted connection 6 from 127.0.0.10:13886 on port 9106
+[server] accepted connection 7 from 127.0.0.10:31855 on port 9106
+[server] accepted connection 8 from 127.0.0.10:45680 on port 9106
+[server] accepted connection 9 from 127.0.0.10:60155 on port 9106
+[server] accepted connection 10 from 127.0.0.10:46111 on port 9106
+[server] accepted connection 11 from 127.0.0.10:25655 on port 9106
+[server] accepted connection 12 from 127.0.0.10:55273 on port 9106
+[server] accepted connection 13 from 127.0.0.10:50113 on port 9106
+[server] accepted connection 14 from 127.0.0.10:50659 on port 9106
+[server] accepted connection 15 from 127.0.0.10:54137 on port 9106
+[server] accepted connection 16 from 127.0.0.10:31544 on port 9106
+[server] accepted connection 17 from 127.0.0.10:61717 on port 9106
+[server] accepted connection 18 from 127.0.0.10:20404 on port 9106
+[server] accepted connection 19 from 127.0.0.10:57862 on port 9106
+[server] connection 1 closed by peer
+[server] connection 0 closed by peer

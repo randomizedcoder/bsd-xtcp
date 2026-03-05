@@ -1,0 +1,4 @@
+[2026-03-05T07:23:25.599] test: I::i38
+[2026-03-05T07:23:25.599] filter: local_addr=fd00::19 ipv6_only remote_addr=fd00::19
+[2026-03-05T07:23:25.599] expected: 20 (Eq)
+[2026-03-05T07:23:25.599] result: PASS

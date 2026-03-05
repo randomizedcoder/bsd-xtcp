@@ -1,0 +1,81 @@
+[server] starting on 2 port(s)
+[server] listening on 127.0.0.16:9047
+[server] listening on 127.0.0.16:9048
+[server] accepted connection 0 from 127.0.0.16:55979 on port 9047
+[server] accepted connection 1 from 127.0.0.16:7543 on port 9048
+[server] accepted connection 2 from 127.0.0.16:59787 on port 9047
+[server] accepted connection 3 from 127.0.0.16:65043 on port 9048
+[server] accepted connection 4 from 127.0.0.16:30458 on port 9047
+[server] accepted connection 5 from 127.0.0.16:6534 on port 9048
+[server] accepted connection 6 from 127.0.0.16:16452 on port 9047
+[server] accepted connection 7 from 127.0.0.16:31754 on port 9048
+[server] accepted connection 8 from 127.0.0.16:55829 on port 9047
+[server] accepted connection 9 from 127.0.0.16:34821 on port 9048
+[server] accepted connection 10 from 127.0.0.16:26493 on port 9047
+[server] accepted connection 11 from 127.0.0.16:33345 on port 9048
+[server] accepted connection 12 from 127.0.0.16:41491 on port 9047
+[server] accepted connection 13 from 127.0.0.16:62827 on port 9048
+[server] accepted connection 14 from 127.0.0.16:61959 on port 9047
+[server] accepted connection 15 from 127.0.0.16:15956 on port 9048
+[server] accepted connection 16 from 127.0.0.16:61586 on port 9047
+[server] accepted connection 17 from 127.0.0.16:19442 on port 9048
+[server] accepted connection 18 from 127.0.0.16:33836 on port 9047
+[server] accepted connection 19 from 127.0.0.16:26004 on port 9048
+[server] accepted connection 20 from 127.0.0.16:54361 on port 9047
+[server] accepted connection 21 from 127.0.0.16:10781 on port 9048
+[server] accepted connection 22 from 127.0.0.16:31040 on port 9047
+[server] accepted connection 23 from 127.0.0.16:44022 on port 9048
+[server] accepted connection 24 from 127.0.0.16:3702 on port 9047
+[server] accepted connection 25 from 127.0.0.16:7373 on port 9048
+[server] accepted connection 26 from 127.0.0.16:36310 on port 9047
+[server] accepted connection 27 from 127.0.0.16:58697 on port 9048
+[server] accepted connection 28 from 127.0.0.16:64005 on port 9047
+[server] accepted connection 29 from 127.0.0.16:23667 on port 9048
+[server] accepted connection 30 from 127.0.0.16:63543 on port 9047
+[server] accepted connection 31 from 127.0.0.16:25446 on port 9048
+[server] accepted connection 32 from 127.0.0.16:24652 on port 9047
+[server] accepted connection 33 from 127.0.0.16:16605 on port 9048
+[server] accepted connection 34 from 127.0.0.16:49716 on port 9047
+[server] accepted connection 35 from 127.0.0.16:61557 on port 9048
+[server] accepted connection 36 from 127.0.0.16:62106 on port 9047
+[server] accepted connection 37 from 127.0.0.16:63326 on port 9048
+[server] accepted connection 38 from 127.0.0.16:48882 on port 9047
+[server] accepted connection 39 from 127.0.0.16:44128 on port 9048
+[server] connection 1 closed by peer
+[server] connection 0 closed by peer
+[server] connection 13 closed by peer
+[server] connection 14 closed by peer
+[server] connection 4 closed by peer
+[server] connection 18 closed by peer
+[server] connection 30 closed by peer
+[server] connection 2 closed by peer
+[server] connection 10 closed by peer
+[server] connection 16 closed by peer
+[server] connection 6 closed by peer
+[server] connection 8 closed by peer
+[server] connection 17 closed by peer
+[server] connection 25 closed by peer
+[server] connection 34 closed by peer
+[server] connection 3 closed by peer
+[server] connection 5 closed by peer
+[server] connection 11 closed by peer
+[server] connection 35 closed by peer
+[server] connection 39 closed by peer
+[server] connection 31 closed by peer
+[server] connection 36 closed by peer
+[server] connection 12 closed by peer
+[server] connection 22 closed by peer
+[server] connection 29 closed by peer
+[server] connection 32 closed by peer
+[server] connection 37 closed by peer
+[server] connection 23 closed by peer
+[server] connection 33 closed by peer
+[server] connection 7 closed by peer
+[server] connection 9 closed by peer
+[server] connection 15 closed by peer
+[server] connection 20 closed by peer
+[server] connection 21 closed by peer
+[server] connection 19 closed by peer
+[server] connection 26 closed by peer
+[server] connection 38 closed by peer
+[server] connection 24 closed by peer

@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "tcp_stats_kld.h"
+#include "tcp_stats_filter_parse.h"
 
 #define	READBUF_SIZE	(4 * 1024 * 1024)	/* 4 MB, ~13000 records max */
 
@@ -31,11 +32,13 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: read_tcpstats [-acL] [-p port]\n"
+	    "usage: read_tcpstats [-acL] [-f filter] [-p port] [-P port]\n"
 	    "  -a        read from /dev/tcpstats-full\n"
 	    "  -c        count-only mode (print matching record count)\n"
+	    "  -f filter full filter string (mutually exclusive with -L and -P)\n"
 	    "  -L        exclude LISTEN sockets (kernel filter)\n"
-	    "  -p port   show only records matching port (local or remote)\n");
+	    "  -p port   show only records matching port (userspace filter)\n"
+	    "  -P port   kernel-side local port filter\n");
 	exit(1);
 }
 
@@ -54,14 +57,19 @@ main(int argc, char *argv[])
 	int flag_count = 0;	/* -c: count-only output */
 	int flag_listen = 0;	/* -L: exclude LISTEN */
 	int filter_port = -1;	/* -p: port filter (-1 = disabled) */
+	int kernel_port = -1;	/* -P: kernel-side port filter */
+	const char *filter_str = NULL;	/* -f: full filter string */
 
-	while ((ch = getopt(argc, argv, "acLp:")) != -1) {
+	while ((ch = getopt(argc, argv, "acLf:p:P:")) != -1) {
 		switch (ch) {
 		case 'a':
 			flag_all = 1;
 			break;
 		case 'c':
 			flag_count = 1;
+			break;
+		case 'f':
+			filter_str = optarg;
 			break;
 		case 'L':
 			flag_listen = 1;
@@ -73,9 +81,22 @@ main(int argc, char *argv[])
 				return (1);
 			}
 			break;
+		case 'P':
+			kernel_port = atoi(optarg);
+			if (kernel_port <= 0 || kernel_port > 65535) {
+				fprintf(stderr, "invalid port: %s\n", optarg);
+				return (1);
+			}
+			break;
 		default:
 			usage();
 		}
+	}
+
+	/* -f is mutually exclusive with -L and -P */
+	if (filter_str != NULL && (flag_listen || kernel_port >= 0)) {
+		fprintf(stderr, "error: -f cannot be combined with -L or -P\n");
+		return (1);
 	}
 
 	devpath = flag_all ? "/dev/tcpstats-full" : "/dev/tcpstats";
@@ -85,11 +106,31 @@ main(int argc, char *argv[])
 		return (1);
 	}
 
-	/* Apply kernel-side LISTEN exclusion if requested */
-	if (flag_listen) {
+	/* Build and apply kernel-side filter */
+	if (filter_str != NULL) {
+		char errbuf[TSF_ERRBUF_SIZE];
 		memset(&filt, 0, sizeof(filt));
-		filt.state_mask = 0xFFFF;	/* include all states */
-		filt.flags = TSF_EXCLUDE_LISTEN;
+		if (tsf_parse_filter_string(filter_str, strlen(filter_str),
+		    &filt, errbuf, sizeof(errbuf)) != 0) {
+			fprintf(stderr, "filter parse error: %s\n", errbuf);
+			close(fd);
+			return (1);
+		}
+		if (ioctl(fd, TCPSTATS_SET_FILTER, &filt) < 0) {
+			perror("ioctl TCPSTATS_SET_FILTER");
+			close(fd);
+			return (1);
+		}
+	} else if (flag_listen || kernel_port >= 0) {
+		memset(&filt, 0, sizeof(filt));
+		filt.version = TSF_VERSION;
+		filt.state_mask = 0xFFFF;
+		if (flag_listen)
+			filt.flags |= TSF_EXCLUDE_LISTEN;
+		if (kernel_port >= 0) {
+			filt.flags |= TSF_LOCAL_PORT_MATCH;
+			filt.local_ports[0] = htons((uint16_t)kernel_port);
+		}
 		if (ioctl(fd, TCPSTATS_SET_FILTER, &filt) < 0) {
 			perror("ioctl TCPSTATS_SET_FILTER");
 			close(fd);

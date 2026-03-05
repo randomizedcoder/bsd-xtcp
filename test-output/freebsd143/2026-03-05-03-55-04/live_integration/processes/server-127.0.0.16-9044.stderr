@@ -1,0 +1,35 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.16:9044
+[server] accepted connection 0 from 127.0.0.16:53086 on port 9044
+[server] accepted connection 1 from 127.0.0.16:21536 on port 9044
+[server] accepted connection 2 from 127.0.0.16:47850 on port 9044
+[server] accepted connection 3 from 127.0.0.16:40296 on port 9044
+[server] accepted connection 4 from 127.0.0.16:59166 on port 9044
+[server] accepted connection 5 from 127.0.0.16:65329 on port 9044
+[server] accepted connection 6 from 127.0.0.16:15120 on port 9044
+[server] accepted connection 7 from 127.0.0.16:35965 on port 9044
+[server] accepted connection 8 from 127.0.0.16:56657 on port 9044
+[server] accepted connection 9 from 127.0.0.16:12726 on port 9044
+[server] accepted connection 10 from 127.0.0.16:64988 on port 9044
+[server] accepted connection 11 from 127.0.0.16:12605 on port 9044
+[server] accepted connection 12 from 127.0.0.16:33672 on port 9044
+[server] accepted connection 13 from 127.0.0.16:59189 on port 9044
+[server] accepted connection 14 from 127.0.0.16:42249 on port 9044
+[server] accepted connection 15 from 127.0.0.16:26522 on port 9044
+[server] accepted connection 16 from 127.0.0.16:55468 on port 9044
+[server] accepted connection 17 from 127.0.0.16:48276 on port 9044
+[server] accepted connection 18 from 127.0.0.16:59395 on port 9044
+[server] accepted connection 19 from 127.0.0.16:54124 on port 9044
+[server] connection 0 closed by peer
+[server] connection 6 closed by peer
+[server] connection 15 closed by peer
+[server] connection 2 closed by peer
+[server] connection 10 closed by peer
+[server] connection 9 closed by peer
+[server] connection 13 closed by peer
+[server] connection 1 closed by peer
+[server] connection 4 closed by peer
+[server] connection 8 closed by peer
+[server] connection 11 closed by peer
+[server] connection 14 closed by peer
+[server] connection 

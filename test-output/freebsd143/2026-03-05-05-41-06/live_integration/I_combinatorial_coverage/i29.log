@@ -1,0 +1,4 @@
+[2026-03-05T05:51:35.904] test: I::i29
+[2026-03-05T05:51:35.904] filter: remote_port=9081 exclude=established remote_addr=127.0.0.19 local_addr=127.0.0.19
+[2026-03-05T05:51:35.904] expected: 0 (Eq)
+[2026-03-05T05:51:35.904] result: PASS

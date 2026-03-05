@@ -1,0 +1,4 @@
+[2026-03-05T05:51:32.251] test: I::i48
+[2026-03-05T05:51:32.251] filter: local_addr=fd00::19 remote_addr=fd00::19 include_state=established ipv6_only
+[2026-03-05T05:51:32.251] expected: 20 (Eq)
+[2026-03-05T05:51:32.251] result: PASS

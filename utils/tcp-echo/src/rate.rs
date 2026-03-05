@@ -50,8 +50,7 @@ impl RateLimiter {
     /// Returns a JoinHandle for the refill thread.
     pub fn start_refill_thread(self: &Arc<Self>) -> thread::JoinHandle<()> {
         let limiter = Arc::clone(self);
-        let tokens_per_refill =
-            (limiter.rate as f64 * REFILL_INTERVAL.as_secs_f64()).ceil() as u64;
+        let tokens_per_refill = (limiter.rate as f64 * REFILL_INTERVAL.as_secs_f64()).ceil() as u64;
         // Cap at 1 second of tokens — large enough for any single write
         // but prevents unbounded accumulation during idle periods.
         let max_tokens = limiter.rate;

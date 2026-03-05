@@ -5,7 +5,7 @@ use std::time::Duration;
 const MAX_PORTS: usize = 10;
 
 /// Maximum number of connections allowed.
-const MAX_CONNECTIONS: u32 = 1000;
+const MAX_CONNECTIONS: u32 = 200_000;
 
 /// Server mode configuration.
 pub struct ServerConfig {
@@ -57,9 +57,12 @@ impl ServerConfig {
         self.ports
             .iter()
             .map(|p| {
-                format!("{}:{}", self.bind_addr, p)
-                    .parse()
-                    .expect("invalid bind address")
+                let s = if self.bind_addr.contains(':') {
+                    format!("[{}]:{}", self.bind_addr, p)
+                } else {
+                    format!("{}:{}", self.bind_addr, p)
+                };
+                s.parse().expect("invalid bind address")
             })
             .collect()
     }
@@ -304,7 +307,7 @@ Connect to a TCP echo server and generate controlled traffic.
 Options:
   --host HOST              Target host (default: 127.0.0.1)
   --ports PORTS            Comma-separated server ports (required, max 10)
-  --connections N          Total TCP connections to open (default: 10, max: 1000)
+  --connections N          Total TCP connections to open (default: 10, max: 200000)
   --rate BYTES             Total bytes/sec across all connections (default: 1024)
   --ramp-duration SECS     Duration to ramp up connections (default: 10)
   --report-interval SECS   Stats reporting interval in seconds (default: 10)

@@ -1,0 +1,64 @@
+[server] starting on 3 port(s)
+[server] listening on 127.0.0.10:9108
+[server] listening on 127.0.0.10:9109
+[server] listening on 127.0.0.10:9110
+[server] accepted connection 0 from 127.0.0.10:31965 on port 9108
+[server] accepted connection 1 from 127.0.0.10:13888 on port 9109
+[server] accepted connection 2 from 127.0.0.10:10459 on port 9110
+[server] accepted connection 3 from 127.0.0.10:7024 on port 9108
+[server] accepted connection 4 from 127.0.0.10:60944 on port 9109
+[server] accepted connection 5 from 127.0.0.10:63463 on port 9110
+[server] accepted connection 6 from 127.0.0.10:29330 on port 9108
+[server] accepted connection 7 from 127.0.0.10:55305 on port 9109
+[server] accepted connection 8 from 127.0.0.10:19654 on port 9110
+[server] accepted connection 9 from 127.0.0.10:58663 on port 9108
+[server] accepted connection 10 from 127.0.0.10:8506 on port 9109
+[server] accepted connection 11 from 127.0.0.10:27362 on port 9110
+[server] accepted connection 12 from 127.0.0.10:64933 on port 9109
+[server] accepted connection 13 from 127.0.0.10:46838 on port 9108
+[server] accepted connection 14 from 127.0.0.10:47377 on port 9110
+[server] accepted connection 15 from 127.0.0.10:51654 on port 9108
+[server] accepted connection 16 from 127.0.0.10:14402 on port 9109
+[server] accepted connection 17 from 127.0.0.10:24827 on port 9110
+[server] accepted connection 18 from 127.0.0.10:53330 on port 9109
+[server] accepted connection 19 from 127.0.0.10:14090 on port 9108
+[server] accepted connection 20 from 127.0.0.10:8348 on port 9110
+[server] accepted connection 21 from 127.0.0.10:12801 on port 9108
+[server] accepted connection 22 from 127.0.0.10:60232 on port 9109
+[server] accepted connection 23 from 127.0.0.10:61310 on port 9110
+[server] accepted connection 24 from 127.0.0.10:62181 on port 9109
+[server] accepted connection 25 from 127.0.0.10:4595 on port 9108
+[server] accepted connection 26 from 127.0.0.10:14202 on port 9110
+[server] accepted connection 27 from 127.0.0.10:32460 on port 9108
+[server] accepted connection 28 from 127.0.0.10:20840 on port 9110
+[server] accepted connection 29 from 127.0.0.10:28337 on port 9109
+[server] connection 0 closed by peer
+[server] connection 1 closed by peer
+[server] connection 5 closed by peer
+[server] connection 2 closed by peer
+[server] connection 6 closed by peer
+[server] connection 9 closed by peer
+[server] connection 27 closed by peer
+[server] connection 29 closed by peer
+[server] connection 4 closed by peer
+[server] connection 7 closed by peer
+[server] connection 15 closed by peer
+[server] connection 10 closed by peer
+[server] connection 16 closed by peer
+[server] connection 8 closed by peer
+[server] connection 12 closed by peer
+[server] connection 20 closed by peer
+[server] connection 26 closed by peer
+[server] connection 19 closed by peer
+[server] connection 28 closed by peer
+[server] connection 25 closed by peer
+[server] connection 14 closed by peer
+[server] connection 3 closed by peer
+[server] connection 13 closed by peer
+[server] connection 22 closed by peer
+[server] connection 24 closed by peer
+[server] connection 17 closed by peer
+[server] connection 23 closed by peer
+[server] connection 21 closed by peer
+[server] connection 18 closed by peer
+[server] connection 11 closed by peer

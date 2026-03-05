@@ -120,6 +120,9 @@ Phases 1-6 are complete. The tool reads live TCP socket data from the macOS kern
 | 5 - JSON output | Done | `JsonSink` with `OutputSink` trait, JSON Lines + pretty-print |
 | 6 - CLI + collection loop | Done | Hand-rolled `--interval`/`--count`/`--pretty` args, synchronous loop |
 | 7-10 | Not started | Delta tracking, getsockopt enrichment, binary output, system summary enrichment |
-| 11-15 | Not started | FreeBSD platform support |
+| 11-15 | In progress | FreeBSD platform support |
 
-See [status/macos.md](status/macos.md) for detailed implementation status.
+See platform status documents for detailed implementation status:
+
+- [status/macos.md](status/macos.md) -- macOS pcblist_n parser, cross-compilation, phases 1-6
+- [status/freebsd.md](status/freebsd.md) -- FreeBSD tcp_stats_kld kernel module, filter parser, test suite (unit/asan/ubsan/memcheck/bench/callgrind/kmod), VM test deployment

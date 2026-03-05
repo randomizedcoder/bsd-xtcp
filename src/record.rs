@@ -65,6 +65,30 @@ pub struct RawSocketRecord {
     pub inp_gencnt: Option<u64>,
     pub start_time_secs: Option<u32>,
 
+    // FreeBSD-specific fields (None on macOS)
+    pub rtt_min_us: Option<u32>,
+    pub cc_algo: Option<String>,
+    pub tcp_stack: Option<String>,
+    pub snd_rexmitpack: Option<u32>,
+    pub rcv_ooopack: Option<u32>,
+    pub snd_zerowin: Option<u32>,
+    pub rcv_numsacks: Option<u32>,
+    pub ecn_flags: Option<u32>,
+    pub delivered_ce: Option<u32>,
+    pub received_ce: Option<u32>,
+    pub dsack_bytes: Option<u32>,
+    pub dsack_pack: Option<u32>,
+    pub total_tlp: Option<u32>,
+    pub total_tlp_bytes: Option<u64>,
+    pub timer_rexmt_ms: Option<u32>,
+    pub timer_persist_ms: Option<u32>,
+    pub timer_keep_ms: Option<u32>,
+    pub timer_2msl_ms: Option<u32>,
+    pub timer_delack_ms: Option<u32>,
+    pub idle_time_ms: Option<u32>,
+    pub options: Option<u8>,
+    pub fd: Option<i32>,
+
     // Data source tag
     pub sources: Vec<u8>,
 }

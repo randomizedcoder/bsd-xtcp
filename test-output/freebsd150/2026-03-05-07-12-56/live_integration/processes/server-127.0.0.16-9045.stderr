@@ -1,0 +1,42 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.16:9045
+[server] accepted connection 0 from 127.0.0.16:35320 on port 9045
+[server] accepted connection 1 from 127.0.0.16:25692 on port 9045
+[server] accepted connection 2 from 127.0.0.16:29350 on port 9045
+[server] accepted connection 3 from 127.0.0.16:53517 on port 9045
+[server] accepted connection 4 from 127.0.0.16:43101 on port 9045
+[server] accepted connection 5 from 127.0.0.16:16925 on port 9045
+[server] accepted connection 6 from 127.0.0.16:43764 on port 9045
+[server] accepted connection 7 from 127.0.0.16:59590 on port 9045
+[server] accepted connection 8 from 127.0.0.16:23719 on port 9045
+[server] accepted connection 9 from 127.0.0.16:62430 on port 9045
+[server] accepted connection 10 from 127.0.0.16:46297 on port 9045
+[server] accepted connection 11 from 127.0.0.16:2159 on port 9045
+[server] accepted connection 12 from 127.0.0.16:25002 on port 9045
+[server] accepted connection 13 from 127.0.0.16:15185 on port 9045
+[server] accepted connection 14 from 127.0.0.16:22223 on port 9045
+[server] accepted connection 15 from 127.0.0.16:56940 on port 9045
+[server] accepted connection 16 from 127.0.0.16:6868 on port 9045
+[server] accepted connection 17 from 127.0.0.16:2455 on port 9045
+[server] accepted connection 18 from 127.0.0.16:20728 on port 9045
+[server] accepted connection 19 from 127.0.0.16:27627 on port 9045
+[server] connection 0 closed by peer
+[server] connection 1 closed by peer
+[server] connection 2 closed by peer
+[server] connection 9 closed by peer
+[server] connection 3 closed by peer
+[server] connection 10 closed by peer
+[server] connection 12 closed by peer
+[server] connection 14 closed by peer
+[server] connection 18 closed by peer
+[server] connection 17 closed by peer
+[server] connection 4 closed by peer
+[server] connection 15 closed by peer
+[server] connection 5 closed by peer
+[server] connection 13 closed by peer
+[server] connection 19 closed by peer
+[server] connection 6 closed by peer
+[server] connection 8 closed by peer
+[server] connection 11 closed by peer
+[server] connection 7 closed by peer
+[server] connection 16 closed by peer

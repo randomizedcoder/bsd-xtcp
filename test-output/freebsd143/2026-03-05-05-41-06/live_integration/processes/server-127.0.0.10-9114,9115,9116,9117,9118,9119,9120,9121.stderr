@@ -1,0 +1,155 @@
+[server] starting on 8 port(s)
+[server] listening on 127.0.0.10:9114
+[server] listening on 127.0.0.10:9115
+[server] listening on 127.0.0.10:9116
+[server] listening on 127.0.0.10:9117
+[server] listening on 127.0.0.10:9118
+[server] listening on 127.0.0.10:9119
+[server] listening on 127.0.0.10:9120
+[server] listening on 127.0.0.10:9121
+[server] accepted connection 0 from 127.0.0.10:39358 on port 9115
+[server] accepted connection 1 from 127.0.0.10:32795 on port 9114
+[server] accepted connection 2 from 127.0.0.10:29142 on port 9117
+[server] accepted connection 3 from 127.0.0.10:22392 on port 9116
+[server] accepted connection 4 from 127.0.0.10:54902 on port 9119
+[server] accepted connection 5 from 127.0.0.10:44264 on port 9118
+[server] accepted connection 6 from 127.0.0.10:62764 on port 9120
+[server] accepted connection 7 from 127.0.0.10:43974 on port 9121
+[server] accepted connection 8 from 127.0.0.10:30676 on port 9114
+[server] accepted connection 9 from 127.0.0.10:19934 on port 9115
+[server] accepted connection 10 from 127.0.0.10:24577 on port 9117
+[server] accepted connection 11 from 127.0.0.10:32012 on port 9116
+[server] accepted connection 12 from 127.0.0.10:41856 on port 9119
+[server] accepted connection 13 from 127.0.0.10:46923 on port 9118
+[server] accepted connection 14 from 127.0.0.10:51431 on port 9121
+[server] accepted connection 15 from 127.0.0.10:58558 on port 9120
+[server] accepted connection 16 from 127.0.0.10:65191 on port 9114
+[server] accepted connection 17 from 127.0.0.10:57492 on port 9115
+[server] accepted connection 18 from 127.0.0.10:63402 on port 9117
+[server] accepted connection 19 from 127.0.0.10:44714 on port 9116
+[server] accepted connection 20 from 127.0.0.10:59953 on port 9119
+[server] accepted connection 21 from 127.0.0.10:55060 on port 9118
+[server] accepted connection 22 from 127.0.0.10:16786 on port 9121
+[server] accepted connection 23 from 127.0.0.10:49369 on port 9120
+[server] accepted connection 24 from 127.0.0.10:10127 on port 9114
+[server] accepted connection 25 from 127.0.0.10:11478 on port 9115
+[server] accepted connection 26 from 127.0.0.10:35904 on port 9117
+[server] accepted connection 27 from 127.0.0.10:45461 on port 9116
+[server] accepted connection 28 from 127.0.0.10:42760 on port 9118
+[server] accepted connection 29 from 127.0.0.10:46183 on port 9119
+[server] accepted connection 30 from 127.0.0.10:36206 on port 9120
+[server] accepted connection 31 from 127.0.0.10:63009 on port 9121
+[server] accepted connection 32 from 127.0.0.10:38085 on port 9114
+[server] accepted connection 33 from 127.0.0.10:40523 on port 9115
+[server] accepted connection 34 from 127.0.0.10:61956 on port 9117
+[server] accepted connection 35 from 127.0.0.10:61024 on port 9116
+[server] accepted connection 36 from 127.0.0.10:50911 on port 9119
+[server] accepted connection 37 from 127.0.0.10:36581 on port 9118
+[server] accepted connection 38 from 127.0.0.10:22421 on port 9121
+[server] accepted connection 39 from 127.0.0.10:30521 on port 9120
+[server] accepted connection 40 from 127.0.0.10:48979 on port 9114
+[server] accepted connection 41 from 127.0.0.10:29786 on port 9115
+[server] accepted connection 42 from 127.0.0.10:22789 on port 9117
+[server] accepted connection 43 from 127.0.0.10:51925 on port 9116
+[server] accepted connection 44 from 127.0.0.10:47740 on port 9119
+[server] accepted connection 45 from 127.0.0.10:63344 on port 9118
+[server] accepted connection 46 from 127.0.0.10:15081 on port 9121
+[server] accepted connection 47 from 127.0.0.10:57637 on port 9120
+[server] accepted connection 48 from 127.0.0.10:33880 on port 9114
+[server] accepted connection 49 from 127.0.0.10:63569 on port 9115
+[server] accepted connection 50 from 127.0.0.10:56405 on port 9117
+[server] accepted connection 51 from 127.0.0.10:27175 on port 9116
+[server] accepted connection 52 from 127.0.0.10:48698 on port 9118
+[server] accepted connection 53 from 127.0.0.10:30075 on port 9119
+[server] accepted connection 54 from 127.0.0.10:35702 on port 9121
+[server] accepted connection 55 from 127.0.0.10:43152 on port 9120
+[server] accepted connection 56 from 127.0.0.10:23885 on port 9115
+[server] accepted connection 57 from 127.0.0.10:56307 on port 9114
+[server] accepted connection 58 from 127.0.0.10:28614 on port 9117
+[server] accepted connection 59 from 127.0.0.10:58659 on port 9116
+[server] accepted connection 60 from 127.0.0.10:36865 on port 9118
+[server] accepted connection 61 from 127.0.0.10:25631 on port 9119
+[server] accepted connection 62 from 127.0.0.10:41330 on port 9121
+[server] accepted connection 63 from 127.0.0.10:63601 on port 9120
+[server] accepted connection 64 from 127.0.0.10:53059 on port 9114
+[server] accepted connection 65 from 127.0.0.10:54065 on port 9115
+[server] accepted connection 66 from 127.0.0.10:31184 on port 9117
+[server] accepted connection 67 from 127.0.0.10:43957 on port 9116
+[server] accepted connection 68 from 127.0.0.10:22485 on port 9119
+[server] accepted connection 69 from 127.0.0.10:13009 on port 9118
+[server] accepted connection 70 from 127.0.0.10:21888 on port 9120
+[server] accepted connection 71 from 127.0.0.10:57274 on port 9121
+[server] accepted connection 72 from 127.0.0.10:57929 on port 9114
+[server] accepted connection 73 from 127.0.0.10:20355 on port 9115
+[server] accepted connection 74 from 127.0.0.10:63297 on port 9116
+[server] accepted connection 75 from 127.0.0.10:51219 on port 9117
+[server] accepted connection 76 from 127.0.0.10:42625 on port 9119
+[server] accepted connection 77 from 127.0.0.10:31261 on port 9118
+[server] accepted connection 78 from 127.0.0.10:26448 on port 9121
+[server] accepted connection 79 from 127.0.0.10:13728 on port 9120
+[server] connection 0 closed by peer
+[server] connection 13 closed by peer
+[server] connection 23 closed by peer
+[server] connection 10 closed by peer
+[server] connection 28 closed by peer
+[server] connection 30 closed by peer
+[server] connection 32 closed by peer
+[server] connection 72 closed by peer
+[server] connection 35 closed by peer
+[server] connection 74 closed by peer
+[server] connection 57 closed by peer
+[server] connection 63 closed by peer
+[server] connection 69 closed by peer
+[server] connection 14 closed by peer
+[server] connection 78 closed by peer
+[server] connection 1 closed by peer
+[server] connection 21 closed by peer
+[server] connection 16 closed by peer
+[server] connection 17 closed by peer
+[server] connection 20 closed by peer
+[server] connection 25 closed by peer
+[server] connection 2 closed by peer
+[server] connection 33 closed by peer
+[server] connection 40 closed by peer
+[server] connection 41 closed by peer
+[server] connection 44 closed by peer
+[server] connection 24 closed by peer
+[server] connection 27 closed by peer
+[server] connection 29 closed by peer
+[server] connection 31 closed by peer
+[server] connection 37 closed by peer
+[server] connection 38 closed by peer
+[server] connection 49 closed by peer
+[server] connection 51 closed by peer
+[server] connection 50 closed by peer
+[server] connection 52 closed by peer
+[server] connection 53 closed by peer
+[server] connection 55 closed by peer
+[server] connection 43 closed by peer
+[server] connection 54 closed by peer
+[server] connection 48 closed by peer
+[server] connection 56 closed by peer
+[server] connection 59 closed by peer
+[server] connection 61 closed by peer
+[server] connection 58 closed by peer
+[server] connection 4 closed by peer
+[server] connection 65 closed by peer
+[server] connection 64 closed by peer
+[server] connection 67 closed by peer
+[server] connection 9 closed by peer
+[server] connection 68 closed by peer
+[server] connection 6 closed by peer
+[server] connection 66 closed by peer
+[server] connection 12 closed by peer
+[server] connection 71 closed by peer
+[server] connection 15 closed by peer
+[server] connection 70 closed by peer
+[server] connection 5 closed by peer
+[server] connection 26 closed by peer
+[server] connection 8 closed by peer
+[server] connection 34 closed by peer
+[server] connection 36 closed by peer
+[server] connection 45 closed by peer
+[server] connection 46 closed by peer
+[server] connection 60 closed by peer
+[server] connection 11 closed by peer

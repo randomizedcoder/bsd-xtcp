@@ -1,0 +1,4 @@
+[2026-03-05T05:11:20.788] test: E::e02
+[2026-03-05T05:11:20.788] filter: local_addr=127.0.0.16 local_port=9042 include_state=established
+[2026-03-05T05:11:20.788] expected: 20 (Eq)
+[2026-03-05T05:11:20.788] result: PASS

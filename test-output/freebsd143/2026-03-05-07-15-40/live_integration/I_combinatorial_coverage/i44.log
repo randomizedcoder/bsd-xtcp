@@ -1,0 +1,4 @@
+[2026-03-05T07:26:11.008] test: I::i44
+[2026-03-05T07:26:11.008] filter: local_port=9081 remote_addr=127.0.0.19 include_state=listen ipv4_only local_addr=127.0.0.19
+[2026-03-05T07:26:11.008] expected: 0 (Eq)
+[2026-03-05T07:26:11.008] result: PASS

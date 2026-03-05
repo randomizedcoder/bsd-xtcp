@@ -1,0 +1,32 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.11:9018
+[server] accepted connection 0 from 127.0.0.11:41068 on port 9018
+[server] accepted connection 1 from 127.0.0.11:32578 on port 9018
+[server] accepted connection 2 from 127.0.0.11:14644 on port 9018
+[server] accepted connection 3 from 127.0.0.11:23998 on port 9018
+[server] accepted connection 4 from 127.0.0.11:20651 on port 9018
+[server] accepted connection 5 from 127.0.0.11:41244 on port 9018
+[server] accepted connection 6 from 127.0.0.11:32548 on port 9018
+[server] accepted connection 7 from 127.0.0.11:54562 on port 9018
+[server] accepted connection 8 from 127.0.0.11:29502 on port 9018
+[server] accepted connection 9 from 127.0.0.11:56836 on port 9018
+[server] accepted connection 10 from 127.0.0.11:52797 on port 9018
+[server] accepted connection 11 from 127.0.0.11:45473 on port 9018
+[server] accepted connection 12 from 127.0.0.11:48871 on port 9018
+[server] accepted connection 13 from 127.0.0.11:52788 on port 9018
+[server] accepted connection 14 from 127.0.0.11:11613 on port 9018
+[server] accepted connection 15 from 127.0.0.11:37620 on port 9018
+[server] accepted connection 16 from 127.0.0.11:21179 on port 9018
+[server] accepted connection 17 from 127.0.0.11:13131 on port 9018
+[server] accepted connection 18 from 127.0.0.11:42462 on port 9018
+[server] accepted connection 19 from 127.0.0.11:18753 on port 9018
+[server] connection 0 closed by peer
+[server] connection 6 closed by peer
+[server] connection 5 closed by peer
+[server] connection 10 closed by peer
+[server] connection 13 closed by peer
+[server] connection 4 closed by peer
+[server] connection 11 closed by peer
+[server] connection 3 closed by peer
+[server] connection 2 closed by peer
+[server] connection 14 closed by peer

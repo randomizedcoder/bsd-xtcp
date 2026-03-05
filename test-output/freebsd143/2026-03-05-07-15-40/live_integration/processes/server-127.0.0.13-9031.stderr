@@ -1,0 +1,13 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.13:9031
+[server] accepted connection 0 from 127.0.0.13:15828 on port 9031
+[server] accepted connection 1 from 127.0.0.13:34153 on port 9031
+[server] accepted connection 2 from 127.0.0.13:11075 on port 9031
+[server] accepted connection 3 from 127.0.0.13:11255 on port 9031
+[server] accepted connection 4 from 127.0.0.13:23424 on port 9031
+[server] accepted connection 5 from 127.0.0.13:55089 on port 9031
+[server] accepted connection 6 from 127.0.0.13:63762 on port 9031
+[server] accepted connection 7 from 127.0.0.13:64301 on port 9031
+[server] accepted connection 8 from 127.0.0.13:13625 on port 9031
+[server] accepted connection 9 from 127.0.0.13:58601 on port 9031
+[server] connection 0 closed by peer

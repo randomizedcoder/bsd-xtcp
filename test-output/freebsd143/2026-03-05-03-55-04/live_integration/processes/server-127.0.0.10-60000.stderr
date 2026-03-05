@@ -1,0 +1,20 @@
+[server] starting on 1 port(s)
+[server] listening on 127.0.0.10:60000
+[server] accepted connection 0 from 127.0.0.10:41040 on port 60000
+[server] accepted connection 1 from 127.0.0.10:11126 on port 60000
+[server] accepted connection 2 from 127.0.0.10:59714 on port 60000
+[server] accepted connection 3 from 127.0.0.10:20403 on port 60000
+[server] accepted connection 4 from 127.0.0.10:4818 on port 60000
+[server] accepted connection 5 from 127.0.0.10:1776 on port 60000
+[server] accepted connection 6 from 127.0.0.10:3814 on port 60000
+[server] accepted connection 7 from 127.0.0.10:15460 on port 60000
+[server] accepted connection 8 from 127.0.0.10:13703 on port 60000
+[server] accepted connection 9 from 127.0.0.10:34922 on port 60000
+[server] connection 0 closed by peer
+[server] connection 3 closed by peer
+[server] connection 5 closed by peer
+[server] connection 6 closed by peer
+[server] connection 9 closed by peer
+[server] connection 1 closed by peer
+[server] connection 8 closed by peer
+[server] connection 4 closed by peer

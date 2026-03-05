@@ -1,0 +1,4 @@
+[2026-03-05T04:04:10.602] test: I::i49
+[2026-03-05T04:04:10.602] filter: local_addr=127.0.0.19 remote_addr=127.0.0.19 include_state=listen ipv4_only
+[2026-03-05T04:04:10.602] expected: 0 (Eq)
+[2026-03-05T04:04:10.602] result: PASS

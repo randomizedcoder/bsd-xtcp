@@ -10,6 +10,18 @@ let
 
   analysisPkgs = builtins.filter (p: p != null)
     (map tryPkg constants.analysisTools);
+
+  linuxProfilingPkgs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+    pkgs.perf
+    pkgs.heaptrack
+  ];
+
+  # FreeBSD cross-compilation tools (Linux only, requires Docker for cross-rs).
+  freebsdCrossPkgs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+    pkgs.cargo-cross
+    pkgs.cargo-zigbuild
+    pkgs.zig
+  ];
 in
 pkgs.mkShell {
   # List build deps explicitly rather than using inputsFrom with
@@ -22,6 +34,8 @@ pkgs.mkShell {
   ]
   ++ securityPkgs
   ++ analysisPkgs
+  ++ linuxProfilingPkgs
+  ++ freebsdCrossPkgs
   ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.lldb ]
   ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.gdb ];
 

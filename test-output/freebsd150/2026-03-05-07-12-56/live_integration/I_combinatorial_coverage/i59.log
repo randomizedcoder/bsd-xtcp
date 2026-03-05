@@ -1,0 +1,4 @@
+[2026-03-05T07:23:25.612] test: I::i59
+[2026-03-05T07:23:25.612] filter: remote_port=9081 remote_addr=127.0.0.19 include_state=established ipv4_only local_addr=127.0.0.19
+[2026-03-05T07:23:25.612] expected: 10 (Eq)
+[2026-03-05T07:23:25.612] result: PASS

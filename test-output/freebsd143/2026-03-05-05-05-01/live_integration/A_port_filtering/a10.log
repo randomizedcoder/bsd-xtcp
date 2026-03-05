@@ -1,0 +1,5 @@
+[2026-03-05T05:06:53.259] test: A::a10
+[2026-03-05T05:06:53.259] filter: local_addr=127.0.0.10 remote_port=9122,9123
+[2026-03-05T05:06:53.259] expected: 40 (Eq)
+[2026-03-05T05:06:53.259] result: FAIL
+[2026-03-05T05:06:53.259] error: a10: multi remote_port: FAIL — filter="local_addr=127.0.0.10 remote_port=9122,9123" expected 40 (Eq), got 38
