@@ -28,6 +28,7 @@
 #     kmod-analysis-infer         Meta Infer (conditional availability)
 #     kmod-analysis-semgrep       Semgrep with custom kernel rules
 #     kmod-analysis-flawfinder    CWE-oriented source scanner
+#     kmod-analysis-format-check  clang-format style check
 #     kmod-analysis-all           All C static analyzers
 #     bsd-xtcp-freebsd            Deploy + build + test bsd-xtcp on ALL FreeBSD VMs
 #     bsd-xtcp-freebsd150         Deploy + build + test on FreeBSD 15.0 only

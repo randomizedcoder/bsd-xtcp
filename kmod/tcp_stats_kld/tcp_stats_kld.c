@@ -47,7 +47,7 @@
 SDT_PROVIDER_DEFINE(tcpstats);
 SDT_PROBE_DEFINE2(tcpstats, , read, entry, "uio_resid", "filter_flags");
 SDT_PROBE_DEFINE3(tcpstats, , read, done, "error", "records_emitted",
-    "elapsed_ns");
+		  "elapsed_ns");
 SDT_PROBE_DEFINE2(tcpstats, , filter, skip, "inpcb_ptr", "reason_code");
 SDT_PROBE_DEFINE1(tcpstats, , filter, match, "inpcb_ptr");
 SDT_PROBE_DEFINE2(tcpstats, , fill, done, "elapsed_ns", "record_size");
@@ -62,23 +62,24 @@ SDT_PROBE_DEFINE1(tcpstats, , profile, destroy, "name");
 	SDT_PROBE2(tcpstats, , filter, skip, (inp), (reason))
 #define TSF_DTRACE_FILTER_MATCH(inp) \
 	SDT_PROBE1(tcpstats, , filter, match, (inp))
-#define TSF_DTRACE_FILL_DONE(start, sz) do {				\
-	sbintime_t _elapsed = getsbinuptime() - (start);		\
-	uint64_t _ns = (uint64_t)_elapsed * 1000000000 / SBT_1S;	\
-	SDT_PROBE2(tcpstats, , fill, done, _ns, (sz));			\
-} while (0)
+#define TSF_DTRACE_FILL_DONE(start, sz)                                  \
+	do {                                                             \
+		sbintime_t _elapsed = getsbinuptime() - (start);         \
+		uint64_t _ns = (uint64_t)_elapsed * 1000000000 / SBT_1S; \
+		SDT_PROBE2(tcpstats, , fill, done, _ns, (sz));           \
+	} while (0)
 #define TSF_DTRACE_PROFILE_CREATE(name) \
 	SDT_PROBE1(tcpstats, , profile, create, (name))
 #define TSF_DTRACE_PROFILE_DESTROY(name) \
 	SDT_PROBE1(tcpstats, , profile, destroy, (name))
 #else
-#define TSF_DTRACE_READ_ENTRY(resid, flags)	((void)0)
-#define TSF_DTRACE_READ_DONE(err, nrec, ns)	((void)0)
-#define TSF_DTRACE_FILTER_SKIP(inp, reason)	((void)0)
-#define TSF_DTRACE_FILTER_MATCH(inp)		((void)0)
-#define TSF_DTRACE_FILL_DONE(start, sz)	((void)0)
-#define TSF_DTRACE_PROFILE_CREATE(name)		((void)0)
-#define TSF_DTRACE_PROFILE_DESTROY(name)	((void)0)
+#define TSF_DTRACE_READ_ENTRY(resid, flags) ((void)0)
+#define TSF_DTRACE_READ_DONE(err, nrec, ns) ((void)0)
+#define TSF_DTRACE_FILTER_SKIP(inp, reason) ((void)0)
+#define TSF_DTRACE_FILTER_MATCH(inp)	    ((void)0)
+#define TSF_DTRACE_FILL_DONE(start, sz)	    ((void)0)
+#define TSF_DTRACE_PROFILE_CREATE(name)	    ((void)0)
+#define TSF_DTRACE_PROFILE_DESTROY(name)    ((void)0)
 #endif
 
 /* ================================================================
@@ -91,10 +92,10 @@ SDT_PROBE_DEFINE1(tcpstats, , profile, destroy, "name");
 #define TSF_DBG(fmt, ...) \
 	printf("tcp_stats_kld: " fmt, ##__VA_ARGS__)
 /* Limit per-socket address mismatch logs to avoid flooding dmesg */
-#define TSF_DBG_ADDR_MAX	8
+#define TSF_DBG_ADDR_MAX 8
 #else
-#define TSF_DBG(fmt, ...)	((void)0)
-#define TSF_DBG_ADDR_MAX	0
+#define TSF_DBG(fmt, ...) ((void)0)
+#define TSF_DBG_ADDR_MAX  0
 #endif
 
 /* ================================================================
@@ -105,13 +106,13 @@ SDT_PROBE_DEFINE1(tcpstats, , profile, destroy, "name");
  * ================================================================ */
 
 /* Filter skip reason codes (for DTrace and stats) */
-#define TSF_SKIP_GENCNT		0
-#define TSF_SKIP_CRED		1
-#define TSF_SKIP_IPVER		2
-#define TSF_SKIP_STATE		3
-#define TSF_SKIP_PORT		4
-#define TSF_SKIP_ADDR		5
-#define TSF_SKIP_TIMEOUT	6
+#define TSF_SKIP_GENCNT	 0
+#define TSF_SKIP_CRED	 1
+#define TSF_SKIP_IPVER	 2
+#define TSF_SKIP_STATE	 3
+#define TSF_SKIP_PORT	 4
+#define TSF_SKIP_ADDR	 5
+#define TSF_SKIP_TIMEOUT 6
 
 /* Tier 1: always-on counters */
 static volatile u_int tcpstats_active_fds;
@@ -158,66 +159,68 @@ struct tcpstats_stats_batch {
 	uint64_t reads_interrupted;
 };
 
-#define TSF_STAT_LOCAL_INC(batch, field)	((batch)->field++)
-#define TSF_STAT_FLUSH(batch) do {					\
-	if ((batch)->records_emitted)					\
-		atomic_add_64(&tcpstats_stats.records_emitted,		\
-		    (batch)->records_emitted);				\
-	if ((batch)->sockets_visited)					\
-		atomic_add_64(&tcpstats_stats.sockets_visited,		\
-		    (batch)->sockets_visited);				\
-	if ((batch)->sockets_skipped_gencnt)				\
-		atomic_add_64(&tcpstats_stats.sockets_skipped_gencnt,	\
-		    (batch)->sockets_skipped_gencnt);			\
-	if ((batch)->sockets_skipped_cred)				\
-		atomic_add_64(&tcpstats_stats.sockets_skipped_cred,	\
-		    (batch)->sockets_skipped_cred);			\
-	if ((batch)->sockets_skipped_ipver)				\
-		atomic_add_64(&tcpstats_stats.sockets_skipped_ipver,	\
-		    (batch)->sockets_skipped_ipver);			\
-	if ((batch)->sockets_skipped_state)				\
-		atomic_add_64(&tcpstats_stats.sockets_skipped_state,	\
-		    (batch)->sockets_skipped_state);			\
-	if ((batch)->sockets_skipped_port)				\
-		atomic_add_64(&tcpstats_stats.sockets_skipped_port,	\
-		    (batch)->sockets_skipped_port);			\
-	if ((batch)->sockets_skipped_addr)				\
-		atomic_add_64(&tcpstats_stats.sockets_skipped_addr,	\
-		    (batch)->sockets_skipped_addr);			\
-	if ((batch)->uiomove_errors)					\
-		atomic_add_64(&tcpstats_stats.uiomove_errors,		\
-		    (batch)->uiomove_errors);				\
-	if ((batch)->reads_timed_out)					\
-		atomic_add_64(&tcpstats_stats.reads_timed_out,		\
-		    (batch)->reads_timed_out);				\
-	if ((batch)->reads_interrupted)					\
-		atomic_add_64(&tcpstats_stats.reads_interrupted,	\
-		    (batch)->reads_interrupted);				\
-} while (0)
+#define TSF_STAT_LOCAL_INC(batch, field) ((batch)->field++)
+#define TSF_STAT_FLUSH(batch)                                                 \
+	do {                                                                  \
+		if ((batch)->records_emitted)                                 \
+			atomic_add_64(&tcpstats_stats.records_emitted,        \
+				      (batch)->records_emitted);              \
+		if ((batch)->sockets_visited)                                 \
+			atomic_add_64(&tcpstats_stats.sockets_visited,        \
+				      (batch)->sockets_visited);              \
+		if ((batch)->sockets_skipped_gencnt)                          \
+			atomic_add_64(&tcpstats_stats.sockets_skipped_gencnt, \
+				      (batch)->sockets_skipped_gencnt);       \
+		if ((batch)->sockets_skipped_cred)                            \
+			atomic_add_64(&tcpstats_stats.sockets_skipped_cred,   \
+				      (batch)->sockets_skipped_cred);         \
+		if ((batch)->sockets_skipped_ipver)                           \
+			atomic_add_64(&tcpstats_stats.sockets_skipped_ipver,  \
+				      (batch)->sockets_skipped_ipver);        \
+		if ((batch)->sockets_skipped_state)                           \
+			atomic_add_64(&tcpstats_stats.sockets_skipped_state,  \
+				      (batch)->sockets_skipped_state);        \
+		if ((batch)->sockets_skipped_port)                            \
+			atomic_add_64(&tcpstats_stats.sockets_skipped_port,   \
+				      (batch)->sockets_skipped_port);         \
+		if ((batch)->sockets_skipped_addr)                            \
+			atomic_add_64(&tcpstats_stats.sockets_skipped_addr,   \
+				      (batch)->sockets_skipped_addr);         \
+		if ((batch)->uiomove_errors)                                  \
+			atomic_add_64(&tcpstats_stats.uiomove_errors,         \
+				      (batch)->uiomove_errors);               \
+		if ((batch)->reads_timed_out)                                 \
+			atomic_add_64(&tcpstats_stats.reads_timed_out,        \
+				      (batch)->reads_timed_out);              \
+		if ((batch)->reads_interrupted)                               \
+			atomic_add_64(&tcpstats_stats.reads_interrupted,      \
+				      (batch)->reads_interrupted);            \
+	} while (0)
 
 /* Non-batched accessors for outside hot loop */
 #define TSF_STAT_ADD(field, val) \
 	atomic_add_64(&tcpstats_stats.field, (val))
-#define TSF_STAT_MAX(field, val) do {					\
-	uint64_t _new = (val);						\
-	uint64_t _cur;							\
-	do {								\
-		_cur = *(volatile uint64_t *)&tcpstats_stats.field;	\
-		if (_new <= _cur)					\
-			break;						\
-	} while (!atomic_cmpset_64(					\
-	    (volatile uint64_t *)&tcpstats_stats.field,			\
-	    _cur, _new));						\
-} while (0)
+#define TSF_STAT_MAX(field, val)                                            \
+	do {                                                                \
+		uint64_t _new = (val);                                      \
+		uint64_t _cur;                                              \
+		do {                                                        \
+			_cur = *(volatile uint64_t *)&tcpstats_stats.field; \
+			if (_new <= _cur)                                   \
+				break;                                      \
+		} while (!atomic_cmpset_64(                                 \
+		    (volatile uint64_t *)&tcpstats_stats.field,             \
+		    _cur, _new));                                           \
+	} while (0)
 #else
-#define TSF_STAT_LOCAL_INC(batch, field)	((void)0)
-#define TSF_STAT_FLUSH(batch)		((void)0)
-#define TSF_STAT_ADD(field, val)	((void)0)
-#define TSF_STAT_MAX(field, val)	((void)0)
+#define TSF_STAT_LOCAL_INC(batch, field) ((void)0)
+#define TSF_STAT_FLUSH(batch)		 ((void)0)
+#define TSF_STAT_ADD(field, val)	 ((void)0)
+#define TSF_STAT_MAX(field, val)	 ((void)0)
 #endif
 
 #ifndef GID_NETWORK
-#define	GID_NETWORK	69
+#define GID_NETWORK 69
 #endif
 
 MALLOC_DEFINE(M_TCPSTATS, "tcpstats", "tcp_stats_kld per-fd state");
@@ -240,54 +243,55 @@ static u_int tcpstats_max_read_duration_ms = 5000;
 static u_int tcpstats_min_read_interval_ms = 0;
 
 /* How often to check timeout/signals (every N sockets) */
-#define TSF_CHECK_INTERVAL	1024
+#define TSF_CHECK_INTERVAL 1024
 
 struct tcpstats_softc {
-	struct ucred		*sc_cred;
-	uint64_t		sc_gen;
-	int			sc_started;
-	int			sc_done;
-	struct tcpstats_filter	sc_filter;
-	int			sc_full;
-	sbintime_t		sc_last_read;
+	struct ucred *sc_cred;
+	uint64_t sc_gen;
+	int sc_started;
+	int sc_done;
+	struct tcpstats_filter sc_filter;
+	int sc_full;
+	sbintime_t sc_last_read;
 };
 
-static d_open_t		tcpstats_open;
-static d_read_t		tcpstats_read;
-static d_ioctl_t	tcpstats_ioctl;
+static d_open_t tcpstats_open;
+static d_read_t tcpstats_read;
+static d_ioctl_t tcpstats_ioctl;
 
-static void		tcpstats_dtor(void *data);
+static void tcpstats_dtor(void *data);
 
 static struct cdev *tcpstats_dev;
 static struct cdev *tcpstats_full_dev;
 
 static struct cdevsw tcpstats_cdevsw = {
-	.d_version = D_VERSION,
-	.d_name    = "tcpstats",
-	.d_open    = tcpstats_open,
-	.d_read    = tcpstats_read,
-	.d_ioctl   = tcpstats_ioctl,
+    .d_version = D_VERSION,
+    .d_name = "tcpstats",
+    .d_open = tcpstats_open,
+    .d_read = tcpstats_read,
+    .d_ioctl = tcpstats_ioctl,
 };
 
 static struct cdevsw tcpstats_full_cdevsw = {
-	.d_version = D_VERSION,
-	.d_name    = "tcpstats-full",
-	.d_open    = tcpstats_open,
-	.d_read    = tcpstats_read,
-	.d_ioctl   = tcpstats_ioctl,
+    .d_version = D_VERSION,
+    .d_name = "tcpstats-full",
+    .d_open = tcpstats_open,
+    .d_read = tcpstats_read,
+    .d_ioctl = tcpstats_ioctl,
 };
 
 /* --- Named filter profiles --- */
 
-#define TSF_MAX_PROFILES	16
-#define TSF_PROFILE_NAME_MAX	32
+#define TSF_MAX_PROFILES     16
+#define TSF_PROFILE_NAME_MAX 32
 
 struct tcpstats_profile {
-	char			name[TSF_PROFILE_NAME_MAX];
-	char			filter_str[TSF_PARSE_MAXLEN];
-	struct tcpstats_filter	filter;
-	struct cdev		*dev;
-	SLIST_ENTRY(tcpstats_profile) link;
+	char name[TSF_PROFILE_NAME_MAX];
+	char filter_str[TSF_PARSE_MAXLEN];
+	struct tcpstats_filter filter;
+	struct cdev *dev;
+	SLIST_ENTRY(tcpstats_profile)
+	link;
 };
 
 static SLIST_HEAD(, tcpstats_profile) tcpstats_profiles =
@@ -297,19 +301,19 @@ static struct sx tcpstats_profile_lock;
 
 static char tcpstats_last_error[TSF_ERRBUF_SIZE];
 
-static d_open_t		tcpstats_profile_open;
+static d_open_t tcpstats_profile_open;
 
 static struct cdevsw tcpstats_profile_cdevsw = {
-	.d_version = D_VERSION,
-	.d_name    = "tcpstats-profile",
-	.d_open    = tcpstats_profile_open,
-	.d_read    = tcpstats_read,
-	.d_ioctl   = tcpstats_ioctl,
+    .d_version = D_VERSION,
+    .d_name = "tcpstats-profile",
+    .d_open = tcpstats_profile_open,
+    .d_read = tcpstats_read,
+    .d_ioctl = tcpstats_ioctl,
 };
 
 static int
 tcpstats_profile_open(struct cdev *dev, int oflags, int devtype,
-    struct thread *td)
+		      struct thread *td)
 {
 	struct tcpstats_profile *prof = dev->si_drv1;
 	struct tcpstats_softc *sc;
@@ -362,18 +366,19 @@ tsf_validate_profile_name(const char *name, char *errbuf, size_t errbuflen)
 	}
 	if (len > TSF_PROFILE_NAME_MAX) {
 		snprintf(errbuf, errbuflen,
-		    "profile name too long (%zu > %d)",
-		    len, TSF_PROFILE_NAME_MAX);
+			 "profile name too long (%zu > %d)",
+			 len, TSF_PROFILE_NAME_MAX);
 		return (ENAMETOOLONG);
 	}
 
 	for (size_t i = 0; i < len; i++) {
 		char c = name[i];
 		if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
-		    c == '_')) {
+		      c == '_')) {
 			snprintf(errbuf, errbuflen,
-			    "invalid character '%c' in profile name "
-			    "(allowed: a-z, 0-9, _)", c);
+				 "invalid character '%c' in profile name "
+				 "(allowed: a-z, 0-9, _)",
+				 c);
 			return (EINVAL);
 		}
 	}
@@ -387,7 +392,8 @@ tcpstats_profile_find(const char *name)
 	struct tcpstats_profile *prof;
 
 	sx_assert(&tcpstats_profile_lock, SA_LOCKED);
-	SLIST_FOREACH(prof, &tcpstats_profiles, link) {
+	SLIST_FOREACH(prof, &tcpstats_profiles, link)
+	{
 		if (strcmp(prof->name, name) == 0)
 			return (prof);
 	}
@@ -463,7 +469,7 @@ tcpstats_profile_sysctl_handler(SYSCTL_HANDLER_ARGS)
 		prof = tcpstats_profile_find(profile_name);
 		if (prof != NULL)
 			error = SYSCTL_OUT(req, prof->filter_str,
-			    strlen(prof->filter_str) + 1);
+					   strlen(prof->filter_str) + 1);
 		else
 			error = SYSCTL_OUT(req, "", 1);
 		sx_sunlock(&tcpstats_profile_lock);
@@ -501,10 +507,10 @@ tcpstats_profile_sysctl_handler(SYSCTL_HANDLER_ARGS)
 	/* Parse the filter string */
 	errbuf[0] = '\0';
 	error = tsf_parse_filter_string(input, strlen(input),
-	    &filter, errbuf, sizeof(errbuf));
+					&filter, errbuf, sizeof(errbuf));
 	if (error != 0) {
 		strlcpy(tcpstats_last_error, errbuf,
-		    sizeof(tcpstats_last_error));
+			sizeof(tcpstats_last_error));
 		log(LOG_NOTICE,
 		    "tcp_stats_kld: filter parse error: %s\n", errbuf);
 		return (error);
@@ -555,9 +561,10 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 		int pos = 0;
 
 		sx_slock(&tcpstats_profile_lock);
-		SLIST_FOREACH(prof, &tcpstats_profiles, link) {
+		SLIST_FOREACH(prof, &tcpstats_profiles, link)
+		{
 			pos += snprintf(buf + pos, sizeof(buf) - pos,
-			    "%s: %s\n", prof->name, prof->filter_str);
+					"%s: %s\n", prof->name, prof->filter_str);
 			if (pos >= (int)sizeof(buf) - 1)
 				break;
 		}
@@ -588,10 +595,10 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 		/* Just a name with no filter = delete */
 		errbuf[0] = '\0';
 		error = tsf_validate_profile_name(input, errbuf,
-		    sizeof(errbuf));
+						  sizeof(errbuf));
 		if (error != 0) {
 			strlcpy(tcpstats_last_error, errbuf,
-			    sizeof(tcpstats_last_error));
+				sizeof(tcpstats_last_error));
 			return (error);
 		}
 		sx_xlock(&tcpstats_profile_lock);
@@ -613,7 +620,7 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 	error = tsf_validate_profile_name(input, errbuf, sizeof(errbuf));
 	if (error != 0) {
 		strlcpy(tcpstats_last_error, errbuf,
-		    sizeof(tcpstats_last_error));
+			sizeof(tcpstats_last_error));
 		log(LOG_NOTICE,
 		    "tcp_stats_kld: profile name error: %s\n", errbuf);
 		return (error);
@@ -622,10 +629,10 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 	/* Parse the filter string */
 	errbuf[0] = '\0';
 	error = tsf_parse_filter_string(filter_str, strlen(filter_str),
-	    &filter, errbuf, sizeof(errbuf));
+					&filter, errbuf, sizeof(errbuf));
 	if (error != 0) {
 		strlcpy(tcpstats_last_error, errbuf,
-		    sizeof(tcpstats_last_error));
+			sizeof(tcpstats_last_error));
 		log(LOG_NOTICE,
 		    "tcp_stats_kld: filter parse error: %s\n", errbuf);
 		return (error);
@@ -641,7 +648,7 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 	if (prof != NULL) {
 		bcopy(&filter, &prof->filter, sizeof(prof->filter));
 		strlcpy(prof->filter_str, filter_str,
-		    sizeof(prof->filter_str));
+			sizeof(prof->filter_str));
 		sx_xunlock(&tcpstats_profile_lock);
 		log(LOG_NOTICE,
 		    "tcp_stats_kld: profile '%s' updated: %s\n",
@@ -653,9 +660,9 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 	if (tcpstats_nprofiles >= TSF_MAX_PROFILES) {
 		sx_xunlock(&tcpstats_profile_lock);
 		snprintf(errbuf, sizeof(errbuf),
-		    "maximum profiles reached (%d)", TSF_MAX_PROFILES);
+			 "maximum profiles reached (%d)", TSF_MAX_PROFILES);
 		strlcpy(tcpstats_last_error, errbuf,
-		    sizeof(tcpstats_last_error));
+			sizeof(tcpstats_last_error));
 		return (ENOSPC);
 	}
 
@@ -667,15 +674,15 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 
 	/* Create /dev/tcpstats/<name> */
 	prof->dev = make_dev_credf(0,
-	    &tcpstats_profile_cdevsw, 0, NULL,
-	    UID_ROOT, GID_NETWORK, 0440, "tcpstats/%s", prof->name);
+				   &tcpstats_profile_cdevsw, 0, NULL,
+				   UID_ROOT, GID_NETWORK, 0440, "tcpstats/%s", prof->name);
 	if (prof->dev == NULL) {
 		free(prof, M_TCPSTATS);
 		sx_xunlock(&tcpstats_profile_lock);
 		snprintf(errbuf, sizeof(errbuf),
-		    "failed to create device for profile '%s'", input);
+			 "failed to create device for profile '%s'", input);
 		strlcpy(tcpstats_last_error, errbuf,
-		    sizeof(tcpstats_last_error));
+			sizeof(tcpstats_last_error));
 		return (ENXIO);
 	}
 	prof->dev->si_drv1 = prof;
@@ -690,12 +697,12 @@ tcpstats_profile_set_handler(SYSCTL_HANDLER_ARGS)
 	 * After this, `sysctl dev.tcpstats.profiles.web` works.
 	 */
 	SYSCTL_ADD_PROC(&tcpstats_sysctl_ctx,
-	    SYSCTL_CHILDREN(tcpstats_profiles_node),
-	    OID_AUTO, prof->name,
-	    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    prof->name, 0,
-	    tcpstats_profile_sysctl_handler, "A",
-	    "Filter profile");
+			SYSCTL_CHILDREN(tcpstats_profiles_node),
+			OID_AUTO, prof->name,
+			CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE,
+			prof->name, 0,
+			tcpstats_profile_sysctl_handler, "A",
+			"Filter profile");
 
 	TSF_DTRACE_PROFILE_CREATE(prof->name);
 	log(LOG_NOTICE, "tcp_stats_kld: profile '%s' created: %s\n",
@@ -716,7 +723,8 @@ tcpstats_profiles_destroy_all(void)
 	 * destroy_dev() calls.
 	 */
 	sx_xlock(&tcpstats_profile_lock);
-	SLIST_FOREACH_SAFE(prof, &tcpstats_profiles, link, tmp) {
+	SLIST_FOREACH_SAFE(prof, &tcpstats_profiles, link, tmp)
+	{
 		SLIST_REMOVE(&tcpstats_profiles, prof, tcpstats_profile, link);
 		tcpstats_nprofiles--;
 		detached[ndetached++] = prof;
@@ -770,7 +778,7 @@ tcpstats_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
  * ================================================================ */
 static int
 tsf_match_v6_prefix(const struct in6_addr *addr, const struct in6_addr *net,
-    uint8_t prefix)
+		    uint8_t prefix)
 {
 	int full_bytes, remainder_bits;
 
@@ -801,7 +809,7 @@ tsf_match_v6_prefix(const struct in6_addr *addr, const struct in6_addr *net,
 
 static void
 tcpstats_fill_identity(struct tcp_stats_record *rec, struct inpcb *inp,
-    struct tcpcb *tp)
+		       struct tcpcb *tp)
 {
 	struct socket *so;
 
@@ -853,7 +861,7 @@ tcpstats_fill_identity(struct tcp_stats_record *rec, struct inpcb *inp,
  */
 static void
 tcpstats_fill_record(struct tcp_stats_record *rec, struct inpcb *inp,
-    struct tcpcb *tp, uint32_t field_mask, sbintime_t now)
+		     struct tcpcb *tp, uint32_t field_mask, sbintime_t now)
 {
 #ifdef TCPSTATS_DTRACE
 	sbintime_t fill_start __unused = getsbinuptime();
@@ -867,9 +875,9 @@ tcpstats_fill_record(struct tcp_stats_record *rec, struct inpcb *inp,
 	/* RTT -- replicate tcp_fill_info() conversion to usec */
 	if (field_mask & TSR_FIELDS_RTT) {
 		rec->tsr_rtt = ((uint64_t)tp->t_srtt * tick) >>
-		    TCP_RTT_SHIFT;
+			       TCP_RTT_SHIFT;
 		rec->tsr_rttvar = ((uint64_t)tp->t_rttvar * tick) >>
-		    TCP_RTTVAR_SHIFT;
+				  TCP_RTTVAR_SHIFT;
 		rec->tsr_rto = tp->t_rxtcur * tick;
 		rec->tsr_rttmin = tp->t_rttlow;
 	}
@@ -911,10 +919,10 @@ tcpstats_fill_record(struct tcp_stats_record *rec, struct inpcb *inp,
 	if (field_mask & TSR_FIELDS_NAMES) {
 		if (CC_ALGO(tp) != NULL)
 			strlcpy(rec->tsr_cc, CC_ALGO(tp)->name,
-			    sizeof(rec->tsr_cc));
+				sizeof(rec->tsr_cc));
 		if (tp->t_fb != NULL)
 			strlcpy(rec->tsr_stack, tp->t_fb->tfb_tcp_block_name,
-			    sizeof(rec->tsr_stack));
+				sizeof(rec->tsr_stack));
 	}
 
 	/* Counters */
@@ -949,19 +957,18 @@ tcpstats_fill_record(struct tcp_stats_record *rec, struct inpcb *inp,
 	if (field_mask & TSR_FIELDS_TIMERS) {
 		int i;
 		int32_t *timer_fields[] = {
-			&rec->tsr_tt_rexmt,
-			&rec->tsr_tt_persist,
-			&rec->tsr_tt_keep,
-			&rec->tsr_tt_2msl,
-			&rec->tsr_tt_delack,
+		    &rec->tsr_tt_rexmt,
+		    &rec->tsr_tt_persist,
+		    &rec->tsr_tt_keep,
+		    &rec->tsr_tt_2msl,
+		    &rec->tsr_tt_delack,
 		};
 		for (i = 0; i < TT_N; i++) {
 			if (tp->t_timers[i] == SBT_MAX ||
 			    tp->t_timers[i] == 0)
 				*timer_fields[i] = 0;
 			else
-				*timer_fields[i] = (int32_t)(
-				    (tp->t_timers[i] - now) / SBT_1MS);
+				*timer_fields[i] = (int32_t)((tp->t_timers[i] - now) / SBT_1MS);
 		}
 		rec->tsr_rcvtime =
 		    ((uint32_t)ticks - tp->t_rcvtime) * tick / 1000;
@@ -1041,7 +1048,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 	/* Compute deadline for iteration timeout */
 	if (tcpstats_max_read_duration_ms > 0)
 		deadline = read_start +
-		    (sbintime_t)tcpstats_max_read_duration_ms * SBT_1MS;
+			   (sbintime_t)tcpstats_max_read_duration_ms * SBT_1MS;
 	else
 		deadline = 0; /* no deadline */
 
@@ -1054,12 +1061,12 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 	TSF_DTRACE_READ_ENTRY(uio->uio_resid, sc->sc_filter.flags);
 
 	TSF_DBG("read: resid=%zd flags=0x%x state_mask=0x%x\n",
-	    uio->uio_resid, sc->sc_filter.flags, sc->sc_filter.state_mask);
+		uio->uio_resid, sc->sc_filter.flags, sc->sc_filter.state_mask);
 
 	CURVNET_SET(TD_TO_VNET(curthread));
 
 	struct inpcb_iterator inpi = INP_ALL_ITERATOR(&V_tcbinfo,
-	    INPLOOKUP_RLOCKPCB);
+						      INPLOOKUP_RLOCKPCB);
 	gencnt = V_tcbinfo.ipi_gencnt;
 
 	while ((inp = inp_next(&inpi)) != NULL) {
@@ -1069,7 +1076,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		}
 
 		nsockets++;
-		TSF_STAT_LOCAL_INC(&stats_batch,sockets_visited);
+		TSF_STAT_LOCAL_INC(&stats_batch, sockets_visited);
 
 		/*
 		 * Periodic checks: timeout, signals, voluntary preemption.
@@ -1079,7 +1086,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 			/* Signal check: allow SIGINT etc. to interrupt */
 			if (SIGPENDING(curthread)) {
 				INP_RUNLOCK(inp);
-				TSF_STAT_LOCAL_INC(&stats_batch,reads_interrupted);
+				TSF_STAT_LOCAL_INC(&stats_batch, reads_interrupted);
 				error = EINTR;
 				goto out;
 			}
@@ -1088,7 +1095,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 			if (deadline != 0 &&
 			    getsbinuptime() > deadline) {
 				INP_RUNLOCK(inp);
-				TSF_STAT_LOCAL_INC(&stats_batch,reads_timed_out);
+				TSF_STAT_LOCAL_INC(&stats_batch, reads_timed_out);
 				break;
 			}
 
@@ -1099,7 +1106,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		/* Skip entries added after our snapshot. */
 		if (inp->inp_gencnt > gencnt) {
 			TSF_DTRACE_FILTER_SKIP(inp, TSF_SKIP_GENCNT);
-			TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_gencnt);
+			TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_gencnt);
 #ifdef TCPSTATS_DEBUG
 			dbg_skip_gencnt++;
 #endif
@@ -1113,7 +1120,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		if ((sc->sc_filter.flags & TSF_IPV4_ONLY) &&
 		    !(vflag & INP_IPV4)) {
 			TSF_DTRACE_FILTER_SKIP(inp, TSF_SKIP_IPVER);
-			TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_ipver);
+			TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_ipver);
 #ifdef TCPSTATS_DEBUG
 			dbg_skip_ipver++;
 #endif
@@ -1122,7 +1129,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		if ((sc->sc_filter.flags & TSF_IPV6_ONLY) &&
 		    !(vflag & INP_IPV6)) {
 			TSF_DTRACE_FILTER_SKIP(inp, TSF_SKIP_IPVER);
-			TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_ipver);
+			TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_ipver);
 #ifdef TCPSTATS_DEBUG
 			dbg_skip_ipver++;
 #endif
@@ -1134,10 +1141,10 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		if (tp != NULL) {
 			if (sc->sc_filter.state_mask != 0xFFFF &&
 			    !(sc->sc_filter.state_mask &
-			    (1 << tp->t_state))) {
+			      (1 << tp->t_state))) {
 				TSF_DTRACE_FILTER_SKIP(inp,
-				    TSF_SKIP_STATE);
-				TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_state);
+						       TSF_SKIP_STATE);
+				TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_state);
 #ifdef TCPSTATS_DEBUG
 				dbg_skip_state++;
 #endif
@@ -1148,7 +1155,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		/* Credential visibility check. */
 		if (cr_canseeinpcb(sc->sc_cred, inp) != 0) {
 			TSF_DTRACE_FILTER_SKIP(inp, TSF_SKIP_CRED);
-			TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_cred);
+			TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_cred);
 #ifdef TCPSTATS_DEBUG
 			dbg_skip_cred++;
 #endif
@@ -1160,7 +1167,8 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 			uint16_t lport = inp->inp_inc.inc_lport;
 			int found = 0;
 			for (int i = 0; i < TSF_MAX_PORTS &&
-			    sc->sc_filter.local_ports[i] != 0; i++) {
+					sc->sc_filter.local_ports[i] != 0;
+			     i++) {
 				if (lport == sc->sc_filter.local_ports[i]) {
 					found = 1;
 					break;
@@ -1168,7 +1176,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 			}
 			if (!found) {
 				TSF_DTRACE_FILTER_SKIP(inp, TSF_SKIP_PORT);
-				TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_port);
+				TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_port);
 #ifdef TCPSTATS_DEBUG
 				dbg_skip_port++;
 #endif
@@ -1179,7 +1187,8 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 			uint16_t fport = inp->inp_inc.inc_fport;
 			int found = 0;
 			for (int i = 0; i < TSF_MAX_PORTS &&
-			    sc->sc_filter.remote_ports[i] != 0; i++) {
+					sc->sc_filter.remote_ports[i] != 0;
+			     i++) {
 				if (fport == sc->sc_filter.remote_ports[i]) {
 					found = 1;
 					break;
@@ -1187,7 +1196,7 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 			}
 			if (!found) {
 				TSF_DTRACE_FILTER_SKIP(inp, TSF_SKIP_PORT);
-				TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_port);
+				TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_port);
 #ifdef TCPSTATS_DEBUG
 				dbg_skip_port++;
 #endif
@@ -1199,61 +1208,61 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		if (sc->sc_filter.flags & TSF_LOCAL_ADDR_MATCH) {
 			if (vflag & INP_IPV4) {
 				if ((inp->inp_inc.inc_laddr.s_addr &
-				    sc->sc_filter.local_mask_v4.s_addr) !=
+				     sc->sc_filter.local_mask_v4.s_addr) !=
 				    (sc->sc_filter.local_addr_v4.s_addr &
-				    sc->sc_filter.local_mask_v4.s_addr)) {
+				     sc->sc_filter.local_mask_v4.s_addr)) {
 #ifdef TCPSTATS_DEBUG
 					if (dbg_addr_logged < TSF_DBG_ADDR_MAX) {
 						TSF_DBG("  skip LOCAL_ADDR v4: "
-						    "sock=0x%08x filt=0x%08x "
-						    "mask=0x%08x vflag=0x%x "
-						    "lport=%u state=%d\n",
-						    ntohl(inp->inp_inc.inc_laddr.s_addr),
-						    ntohl(sc->sc_filter.local_addr_v4.s_addr),
-						    ntohl(sc->sc_filter.local_mask_v4.s_addr),
-						    vflag,
-						    ntohs(inp->inp_inc.inc_lport),
-						    tp ? tp->t_state : -1);
+							"sock=0x%08x filt=0x%08x "
+							"mask=0x%08x vflag=0x%x "
+							"lport=%u state=%d\n",
+							ntohl(inp->inp_inc.inc_laddr.s_addr),
+							ntohl(sc->sc_filter.local_addr_v4.s_addr),
+							ntohl(sc->sc_filter.local_mask_v4.s_addr),
+							vflag,
+							ntohs(inp->inp_inc.inc_lport),
+							tp ? tp->t_state : -1);
 						dbg_addr_logged++;
 					}
 					dbg_skip_addr++;
 #endif
 					TSF_DTRACE_FILTER_SKIP(inp,
-					    TSF_SKIP_ADDR);
-					TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_addr);
+							       TSF_SKIP_ADDR);
+					TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_addr);
 					continue;
 				}
 			} else if (vflag & INP_IPV6) {
 				/* IPv6 address matching for local_addr */
 				if (!IN6_IS_ADDR_UNSPECIFIED(
-				    &sc->sc_filter.local_addr_v6) &&
+					&sc->sc_filter.local_addr_v6) &&
 				    !tsf_match_v6_prefix(
-				    &inp->inp_inc.inc6_laddr,
-				    &sc->sc_filter.local_addr_v6,
-				    sc->sc_filter.local_prefix_v6)) {
+					&inp->inp_inc.inc6_laddr,
+					&sc->sc_filter.local_addr_v6,
+					sc->sc_filter.local_prefix_v6)) {
 #ifdef TCPSTATS_DEBUG
 					if (dbg_addr_logged < TSF_DBG_ADDR_MAX) {
 						TSF_DBG("  skip LOCAL_ADDR v6: "
-						    "sock=%02x%02x:...:%02x%02x "
-						    "filt=%02x%02x:...:%02x%02x "
-						    "prefix=%u lport=%u\n",
-						    inp->inp_inc.inc6_laddr.s6_addr[0],
-						    inp->inp_inc.inc6_laddr.s6_addr[1],
-						    inp->inp_inc.inc6_laddr.s6_addr[14],
-						    inp->inp_inc.inc6_laddr.s6_addr[15],
-						    sc->sc_filter.local_addr_v6.s6_addr[0],
-						    sc->sc_filter.local_addr_v6.s6_addr[1],
-						    sc->sc_filter.local_addr_v6.s6_addr[14],
-						    sc->sc_filter.local_addr_v6.s6_addr[15],
-						    sc->sc_filter.local_prefix_v6,
-						    ntohs(inp->inp_inc.inc_lport));
+							"sock=%02x%02x:...:%02x%02x "
+							"filt=%02x%02x:...:%02x%02x "
+							"prefix=%u lport=%u\n",
+							inp->inp_inc.inc6_laddr.s6_addr[0],
+							inp->inp_inc.inc6_laddr.s6_addr[1],
+							inp->inp_inc.inc6_laddr.s6_addr[14],
+							inp->inp_inc.inc6_laddr.s6_addr[15],
+							sc->sc_filter.local_addr_v6.s6_addr[0],
+							sc->sc_filter.local_addr_v6.s6_addr[1],
+							sc->sc_filter.local_addr_v6.s6_addr[14],
+							sc->sc_filter.local_addr_v6.s6_addr[15],
+							sc->sc_filter.local_prefix_v6,
+							ntohs(inp->inp_inc.inc_lport));
 						dbg_addr_logged++;
 					}
 					dbg_skip_addr++;
 #endif
 					TSF_DTRACE_FILTER_SKIP(inp,
-					    TSF_SKIP_ADDR);
-					TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_addr);
+							       TSF_SKIP_ADDR);
+					TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_addr);
 					continue;
 				}
 			}
@@ -1261,61 +1270,61 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		if (sc->sc_filter.flags & TSF_REMOTE_ADDR_MATCH) {
 			if (vflag & INP_IPV4) {
 				if ((inp->inp_inc.inc_faddr.s_addr &
-				    sc->sc_filter.remote_mask_v4.s_addr) !=
+				     sc->sc_filter.remote_mask_v4.s_addr) !=
 				    (sc->sc_filter.remote_addr_v4.s_addr &
-				    sc->sc_filter.remote_mask_v4.s_addr)) {
+				     sc->sc_filter.remote_mask_v4.s_addr)) {
 #ifdef TCPSTATS_DEBUG
 					if (dbg_addr_logged < TSF_DBG_ADDR_MAX) {
 						TSF_DBG("  skip REMOTE_ADDR v4: "
-						    "sock=0x%08x filt=0x%08x "
-						    "mask=0x%08x vflag=0x%x "
-						    "fport=%u state=%d\n",
-						    ntohl(inp->inp_inc.inc_faddr.s_addr),
-						    ntohl(sc->sc_filter.remote_addr_v4.s_addr),
-						    ntohl(sc->sc_filter.remote_mask_v4.s_addr),
-						    vflag,
-						    ntohs(inp->inp_inc.inc_fport),
-						    tp ? tp->t_state : -1);
+							"sock=0x%08x filt=0x%08x "
+							"mask=0x%08x vflag=0x%x "
+							"fport=%u state=%d\n",
+							ntohl(inp->inp_inc.inc_faddr.s_addr),
+							ntohl(sc->sc_filter.remote_addr_v4.s_addr),
+							ntohl(sc->sc_filter.remote_mask_v4.s_addr),
+							vflag,
+							ntohs(inp->inp_inc.inc_fport),
+							tp ? tp->t_state : -1);
 						dbg_addr_logged++;
 					}
 					dbg_skip_addr++;
 #endif
 					TSF_DTRACE_FILTER_SKIP(inp,
-					    TSF_SKIP_ADDR);
-					TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_addr);
+							       TSF_SKIP_ADDR);
+					TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_addr);
 					continue;
 				}
 			} else if (vflag & INP_IPV6) {
 				/* IPv6 address matching for remote_addr */
 				if (!IN6_IS_ADDR_UNSPECIFIED(
-				    &sc->sc_filter.remote_addr_v6) &&
+					&sc->sc_filter.remote_addr_v6) &&
 				    !tsf_match_v6_prefix(
-				    &inp->inp_inc.inc6_faddr,
-				    &sc->sc_filter.remote_addr_v6,
-				    sc->sc_filter.remote_prefix_v6)) {
+					&inp->inp_inc.inc6_faddr,
+					&sc->sc_filter.remote_addr_v6,
+					sc->sc_filter.remote_prefix_v6)) {
 #ifdef TCPSTATS_DEBUG
 					if (dbg_addr_logged < TSF_DBG_ADDR_MAX) {
 						TSF_DBG("  skip REMOTE_ADDR v6: "
-						    "sock=%02x%02x:...:%02x%02x "
-						    "filt=%02x%02x:...:%02x%02x "
-						    "prefix=%u fport=%u\n",
-						    inp->inp_inc.inc6_faddr.s6_addr[0],
-						    inp->inp_inc.inc6_faddr.s6_addr[1],
-						    inp->inp_inc.inc6_faddr.s6_addr[14],
-						    inp->inp_inc.inc6_faddr.s6_addr[15],
-						    sc->sc_filter.remote_addr_v6.s6_addr[0],
-						    sc->sc_filter.remote_addr_v6.s6_addr[1],
-						    sc->sc_filter.remote_addr_v6.s6_addr[14],
-						    sc->sc_filter.remote_addr_v6.s6_addr[15],
-						    sc->sc_filter.remote_prefix_v6,
-						    ntohs(inp->inp_inc.inc_fport));
+							"sock=%02x%02x:...:%02x%02x "
+							"filt=%02x%02x:...:%02x%02x "
+							"prefix=%u fport=%u\n",
+							inp->inp_inc.inc6_faddr.s6_addr[0],
+							inp->inp_inc.inc6_faddr.s6_addr[1],
+							inp->inp_inc.inc6_faddr.s6_addr[14],
+							inp->inp_inc.inc6_faddr.s6_addr[15],
+							sc->sc_filter.remote_addr_v6.s6_addr[0],
+							sc->sc_filter.remote_addr_v6.s6_addr[1],
+							sc->sc_filter.remote_addr_v6.s6_addr[14],
+							sc->sc_filter.remote_addr_v6.s6_addr[15],
+							sc->sc_filter.remote_prefix_v6,
+							ntohs(inp->inp_inc.inc_fport));
 						dbg_addr_logged++;
 					}
 					dbg_skip_addr++;
 #endif
 					TSF_DTRACE_FILTER_SKIP(inp,
-					    TSF_SKIP_ADDR);
-					TSF_STAT_LOCAL_INC(&stats_batch,sockets_skipped_addr);
+							       TSF_SKIP_ADDR);
+					TSF_STAT_LOCAL_INC(&stats_batch, sockets_skipped_addr);
 					continue;
 				}
 			}
@@ -1329,11 +1338,11 @@ tcpstats_read(struct cdev *dev, struct uio *uio, int ioflag)
 		error = uiomove(&rec, sizeof(rec), uio);
 		if (error != 0) {
 			INP_RUNLOCK(inp);
-			TSF_STAT_LOCAL_INC(&stats_batch,uiomove_errors);
+			TSF_STAT_LOCAL_INC(&stats_batch, uiomove_errors);
 			goto out;
 		}
 		nrecords++;
-		TSF_STAT_LOCAL_INC(&stats_batch,records_emitted);
+		TSF_STAT_LOCAL_INC(&stats_batch, records_emitted);
 	}
 
 	error = 0;
@@ -1343,14 +1352,14 @@ out:
 	sc->sc_done = 1;
 
 	TSF_DBG("read done: visited=%d emitted=%d err=%d\n",
-	    nsockets, nrecords, error);
+		nsockets, nrecords, error);
 #ifdef TCPSTATS_DEBUG
 	if (dbg_skip_gencnt || dbg_skip_cred || dbg_skip_ipver ||
 	    dbg_skip_state || dbg_skip_port || dbg_skip_addr)
 		TSF_DBG("  skipped: gencnt=%d cred=%d ipver=%d "
-		    "state=%d port=%d addr=%d\n",
-		    dbg_skip_gencnt, dbg_skip_cred, dbg_skip_ipver,
-		    dbg_skip_state, dbg_skip_port, dbg_skip_addr);
+			"state=%d port=%d addr=%d\n",
+			dbg_skip_gencnt, dbg_skip_cred, dbg_skip_ipver,
+			dbg_skip_state, dbg_skip_port, dbg_skip_addr);
 #endif
 
 	/* Flush batched per-socket counters to global stats */
@@ -1372,7 +1381,7 @@ out:
 
 static int
 tcpstats_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-    struct thread *td)
+	       struct thread *td)
 {
 	struct tcpstats_softc *sc;
 	int error;
@@ -1382,8 +1391,7 @@ tcpstats_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		return (error);
 
 	switch (cmd) {
-	case TCPSTATS_VERSION_CMD:
-	{
+	case TCPSTATS_VERSION_CMD: {
 		struct tcpstats_version *ver = (struct tcpstats_version *)data;
 
 		CURVNET_SET(TD_TO_VNET(td));
@@ -1394,52 +1402,51 @@ tcpstats_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		CURVNET_RESTORE();
 		return (0);
 	}
-	case TCPSTATS_SET_FILTER:
-	{
+	case TCPSTATS_SET_FILTER: {
 		struct tcpstats_filter *filt = (struct tcpstats_filter *)data;
 
 		if (filt->version != TSF_VERSION) {
 			printf("tcp_stats_kld: filter version %u unsupported "
-			    "(expected %u)\n",
-			    filt->version, TSF_VERSION);
+			       "(expected %u)\n",
+			       filt->version, TSF_VERSION);
 			return (ENOTSUP);
 		}
 		sc->sc_filter = *filt;
 #ifdef TCPSTATS_DEBUG
 		TSF_DBG("SET_FILTER: flags=0x%x state_mask=0x%x\n",
-		    filt->flags, filt->state_mask);
+			filt->flags, filt->state_mask);
 		if (filt->flags & TSF_LOCAL_PORT_MATCH)
 			TSF_DBG("  local_ports[0]=%u (net-order 0x%x)\n",
-			    ntohs(filt->local_ports[0]),
-			    filt->local_ports[0]);
+				ntohs(filt->local_ports[0]),
+				filt->local_ports[0]);
 		if (filt->flags & TSF_REMOTE_PORT_MATCH)
 			TSF_DBG("  remote_ports[0]=%u (net-order 0x%x)\n",
-			    ntohs(filt->remote_ports[0]),
-			    filt->remote_ports[0]);
+				ntohs(filt->remote_ports[0]),
+				filt->remote_ports[0]);
 		if (filt->flags & TSF_LOCAL_ADDR_MATCH)
 			TSF_DBG("  local_addr_v4=0x%08x mask=0x%08x "
-			    "v6=%02x%02x:%02x%02x:...:%02x%02x/%u\n",
-			    ntohl(filt->local_addr_v4.s_addr),
-			    ntohl(filt->local_mask_v4.s_addr),
-			    filt->local_addr_v6.s6_addr[0],
-			    filt->local_addr_v6.s6_addr[1],
-			    filt->local_addr_v6.s6_addr[2],
-			    filt->local_addr_v6.s6_addr[3],
-			    filt->local_addr_v6.s6_addr[14],
-			    filt->local_addr_v6.s6_addr[15],
-			    filt->local_prefix_v6);
+				"v6=%02x%02x:%02x%02x:...:%02x%02x/%u\n",
+				ntohl(filt->local_addr_v4.s_addr),
+				ntohl(filt->local_mask_v4.s_addr),
+				filt->local_addr_v6.s6_addr[0],
+				filt->local_addr_v6.s6_addr[1],
+				filt->local_addr_v6.s6_addr[2],
+				filt->local_addr_v6.s6_addr[3],
+				filt->local_addr_v6.s6_addr[14],
+				filt->local_addr_v6.s6_addr[15],
+				filt->local_prefix_v6);
 		if (filt->flags & TSF_REMOTE_ADDR_MATCH)
 			TSF_DBG("  remote_addr_v4=0x%08x mask=0x%08x "
-			    "v6=%02x%02x:%02x%02x:...:%02x%02x/%u\n",
-			    ntohl(filt->remote_addr_v4.s_addr),
-			    ntohl(filt->remote_mask_v4.s_addr),
-			    filt->remote_addr_v6.s6_addr[0],
-			    filt->remote_addr_v6.s6_addr[1],
-			    filt->remote_addr_v6.s6_addr[2],
-			    filt->remote_addr_v6.s6_addr[3],
-			    filt->remote_addr_v6.s6_addr[14],
-			    filt->remote_addr_v6.s6_addr[15],
-			    filt->remote_prefix_v6);
+				"v6=%02x%02x:%02x%02x:...:%02x%02x/%u\n",
+				ntohl(filt->remote_addr_v4.s_addr),
+				ntohl(filt->remote_mask_v4.s_addr),
+				filt->remote_addr_v6.s6_addr[0],
+				filt->remote_addr_v6.s6_addr[1],
+				filt->remote_addr_v6.s6_addr[2],
+				filt->remote_addr_v6.s6_addr[3],
+				filt->remote_addr_v6.s6_addr[14],
+				filt->remote_addr_v6.s6_addr[15],
+				filt->remote_prefix_v6);
 #endif
 		return (0);
 	}
@@ -1479,14 +1486,14 @@ tcp_stats_kld_modevent(module_t mod, int type, void *arg)
 		/* Initialize sysctl tree */
 		sysctl_ctx_init(&tcpstats_sysctl_ctx);
 		tcpstats_sysctl_tree = SYSCTL_ADD_NODE(&tcpstats_sysctl_ctx,
-		    SYSCTL_STATIC_CHILDREN(_dev), OID_AUTO, "tcpstats",
-		    CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
-		    "tcp_stats_kld");
+						       SYSCTL_STATIC_CHILDREN(_dev), OID_AUTO, "tcpstats",
+						       CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
+						       "tcp_stats_kld");
 		SYSCTL_ADD_STRING(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "last_error", CTLFLAG_RD,
-		    tcpstats_last_error, sizeof(tcpstats_last_error),
-		    "Last filter parse error");
+				  SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+				  OID_AUTO, "last_error", CTLFLAG_RD,
+				  tcpstats_last_error, sizeof(tcpstats_last_error),
+				  "Last filter parse error");
 		tcpstats_profiles_node = SYSCTL_ADD_NODE(
 		    &tcpstats_sysctl_ctx,
 		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
@@ -1494,129 +1501,129 @@ tcp_stats_kld_modevent(module_t mod, int type, void *arg)
 		    CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 		    "Named filter profiles");
 		SYSCTL_ADD_PROC(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "profile_set",
-		    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE,
-		    NULL, 0,
-		    tcpstats_profile_set_handler, "A",
-		    "Create/update/delete filter profiles "
-		    "(write: 'name filter_string' or 'name' to delete)");
+				SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+				OID_AUTO, "profile_set",
+				CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE,
+				NULL, 0,
+				tcpstats_profile_set_handler, "A",
+				"Create/update/delete filter profiles "
+				"(write: 'name filter_string' or 'name' to delete)");
 
 		/* DoS protection tunables */
 		SYSCTL_ADD_UINT(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "max_open_fds",
-		    CTLFLAG_RW, &tcpstats_max_open_fds, 0,
-		    "Maximum concurrent open file descriptors (default 16)");
+				SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+				OID_AUTO, "max_open_fds",
+				CTLFLAG_RW, &tcpstats_max_open_fds, 0,
+				"Maximum concurrent open file descriptors (default 16)");
 		SYSCTL_ADD_UINT(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "max_concurrent_readers",
-		    CTLFLAG_RW, &tcpstats_max_concurrent_readers, 0,
-		    "Maximum concurrent readers in read() (default 32)");
+				SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+				OID_AUTO, "max_concurrent_readers",
+				CTLFLAG_RW, &tcpstats_max_concurrent_readers, 0,
+				"Maximum concurrent readers in read() (default 32)");
 		SYSCTL_ADD_UINT(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "max_read_duration_ms",
-		    CTLFLAG_RW, &tcpstats_max_read_duration_ms, 0,
-		    "Maximum read() iteration time in ms, 0=unlimited "
-		    "(default 5000)");
+				SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+				OID_AUTO, "max_read_duration_ms",
+				CTLFLAG_RW, &tcpstats_max_read_duration_ms, 0,
+				"Maximum read() iteration time in ms, 0=unlimited "
+				"(default 5000)");
 		SYSCTL_ADD_UINT(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "min_read_interval_ms",
-		    CTLFLAG_RW, &tcpstats_min_read_interval_ms, 0,
-		    "Minimum interval between reads per fd in ms, "
-		    "0=unlimited (default 0)");
+				SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+				OID_AUTO, "min_read_interval_ms",
+				CTLFLAG_RW, &tcpstats_min_read_interval_ms, 0,
+				"Minimum interval between reads per fd in ms, "
+				"0=unlimited (default 0)");
 
 		/* Tier 1 statistics (always on) */
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "reads_total",
-		    CTLFLAG_RD, &tcpstats_reads_total, 0,
-		    "Total read() calls");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "reads_total",
+			       CTLFLAG_RD, &tcpstats_reads_total, 0,
+			       "Total read() calls");
 		SYSCTL_ADD_PROC(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "active_fds",
-		    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    NULL, 0,
-		    sysctl_handle_tcpstats_active_fds, "IU",
-		    "Currently open file descriptors");
+				SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+				OID_AUTO, "active_fds",
+				CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_MPSAFE,
+				NULL, 0,
+				sysctl_handle_tcpstats_active_fds, "IU",
+				"Currently open file descriptors");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "opens_total",
-		    CTLFLAG_RD, &tcpstats_opens_total, 0,
-		    "Total open() calls");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "opens_total",
+			       CTLFLAG_RD, &tcpstats_opens_total, 0,
+			       "Total open() calls");
 
 #ifdef TCPSTATS_STATS
 		/* Tier 2 statistics (compile-time enabled) */
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "records_emitted",
-		    CTLFLAG_RD, &tcpstats_stats.records_emitted, 0,
-		    "Total records copied to userspace");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "records_emitted",
+			       CTLFLAG_RD, &tcpstats_stats.records_emitted, 0,
+			       "Total records copied to userspace");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "sockets_visited",
-		    CTLFLAG_RD, &tcpstats_stats.sockets_visited, 0,
-		    "Total inpcbs examined");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "sockets_visited",
+			       CTLFLAG_RD, &tcpstats_stats.sockets_visited, 0,
+			       "Total inpcbs examined");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "sockets_skipped_gencnt",
-		    CTLFLAG_RD, &tcpstats_stats.sockets_skipped_gencnt, 0,
-		    "Skipped: generation count");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "sockets_skipped_gencnt",
+			       CTLFLAG_RD, &tcpstats_stats.sockets_skipped_gencnt, 0,
+			       "Skipped: generation count");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "sockets_skipped_cred",
-		    CTLFLAG_RD, &tcpstats_stats.sockets_skipped_cred, 0,
-		    "Skipped: credential visibility");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "sockets_skipped_cred",
+			       CTLFLAG_RD, &tcpstats_stats.sockets_skipped_cred, 0,
+			       "Skipped: credential visibility");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "sockets_skipped_ipver",
-		    CTLFLAG_RD, &tcpstats_stats.sockets_skipped_ipver, 0,
-		    "Skipped: IP version filter");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "sockets_skipped_ipver",
+			       CTLFLAG_RD, &tcpstats_stats.sockets_skipped_ipver, 0,
+			       "Skipped: IP version filter");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "sockets_skipped_state",
-		    CTLFLAG_RD, &tcpstats_stats.sockets_skipped_state, 0,
-		    "Skipped: state filter");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "sockets_skipped_state",
+			       CTLFLAG_RD, &tcpstats_stats.sockets_skipped_state, 0,
+			       "Skipped: state filter");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "sockets_skipped_port",
-		    CTLFLAG_RD, &tcpstats_stats.sockets_skipped_port, 0,
-		    "Skipped: port filter");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "sockets_skipped_port",
+			       CTLFLAG_RD, &tcpstats_stats.sockets_skipped_port, 0,
+			       "Skipped: port filter");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "sockets_skipped_addr",
-		    CTLFLAG_RD, &tcpstats_stats.sockets_skipped_addr, 0,
-		    "Skipped: address filter");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "sockets_skipped_addr",
+			       CTLFLAG_RD, &tcpstats_stats.sockets_skipped_addr, 0,
+			       "Skipped: address filter");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "read_duration_ns_total",
-		    CTLFLAG_RD, &tcpstats_stats.read_duration_ns_total, 0,
-		    "Cumulative read() duration in nanoseconds");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "read_duration_ns_total",
+			       CTLFLAG_RD, &tcpstats_stats.read_duration_ns_total, 0,
+			       "Cumulative read() duration in nanoseconds");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "read_duration_ns_max",
-		    CTLFLAG_RD, &tcpstats_stats.read_duration_ns_max, 0,
-		    "Maximum single read() duration in nanoseconds");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "read_duration_ns_max",
+			       CTLFLAG_RD, &tcpstats_stats.read_duration_ns_max, 0,
+			       "Maximum single read() duration in nanoseconds");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "uiomove_errors",
-		    CTLFLAG_RD, &tcpstats_stats.uiomove_errors, 0,
-		    "uiomove() failures");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "uiomove_errors",
+			       CTLFLAG_RD, &tcpstats_stats.uiomove_errors, 0,
+			       "uiomove() failures");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "reads_timed_out",
-		    CTLFLAG_RD, &tcpstats_stats.reads_timed_out, 0,
-		    "Reads terminated by timeout");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "reads_timed_out",
+			       CTLFLAG_RD, &tcpstats_stats.reads_timed_out, 0,
+			       "Reads terminated by timeout");
 		SYSCTL_ADD_U64(&tcpstats_sysctl_ctx,
-		    SYSCTL_CHILDREN(tcpstats_sysctl_tree),
-		    OID_AUTO, "reads_interrupted",
-		    CTLFLAG_RD, &tcpstats_stats.reads_interrupted, 0,
-		    "Reads interrupted by signal");
+			       SYSCTL_CHILDREN(tcpstats_sysctl_tree),
+			       OID_AUTO, "reads_interrupted",
+			       CTLFLAG_RD, &tcpstats_stats.reads_interrupted, 0,
+			       "Reads interrupted by signal");
 #endif /* TCPSTATS_STATS */
 
 		tcpstats_dev = make_dev_credf(MAKEDEV_ETERNAL_KLD,
-		    &tcpstats_cdevsw, 0, NULL, UID_ROOT, GID_NETWORK,
-		    0440, "tcpstats");
+					      &tcpstats_cdevsw, 0, NULL, UID_ROOT, GID_NETWORK,
+					      0440, "tcpstats");
 		if (tcpstats_dev == NULL) {
 			printf("tcp_stats_kld: make_dev_credf failed\n");
 			sysctl_ctx_free(&tcpstats_sysctl_ctx);
@@ -1624,8 +1631,8 @@ tcp_stats_kld_modevent(module_t mod, int type, void *arg)
 			return (ENXIO);
 		}
 		tcpstats_full_dev = make_dev_credf(MAKEDEV_ETERNAL_KLD,
-		    &tcpstats_full_cdevsw, 0, NULL, UID_ROOT, GID_NETWORK,
-		    0440, "tcpstats-full");
+						   &tcpstats_full_cdevsw, 0, NULL, UID_ROOT, GID_NETWORK,
+						   0440, "tcpstats-full");
 		if (tcpstats_full_dev == NULL) {
 			destroy_dev(tcpstats_dev);
 			tcpstats_dev = NULL;
@@ -1635,7 +1642,7 @@ tcp_stats_kld_modevent(module_t mod, int type, void *arg)
 			return (ENXIO);
 		}
 		printf("tcp_stats_kld: loaded (TCP_STATS_VERSION=%d, TSF_VERSION=%d)\n",
-		    TCP_STATS_VERSION, TSF_VERSION);
+		       TCP_STATS_VERSION, TSF_VERSION);
 		return (0);
 	case MOD_UNLOAD:
 		tcpstats_profiles_destroy_all();
@@ -1653,9 +1660,8 @@ tcp_stats_kld_modevent(module_t mod, int type, void *arg)
 }
 
 static moduledata_t tcp_stats_kld_mod = {
-	"tcp_stats_kld",
-	tcp_stats_kld_modevent,
-	NULL
-};
+    "tcp_stats_kld",
+    tcp_stats_kld_modevent,
+    NULL};
 
 DECLARE_MODULE(tcp_stats_kld, tcp_stats_kld_mod, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);

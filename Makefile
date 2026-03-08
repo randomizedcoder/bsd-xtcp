@@ -4,7 +4,8 @@
        kmod-analysis-gcc-warnings kmod-analysis-gcc-fanalyzer \
        kmod-analysis-scan-build kmod-analysis-clang-tidy \
        kmod-analysis-cppcheck kmod-analysis-semgrep \
-       kmod-analysis-flawfinder kmod-analysis-all analyze
+       kmod-analysis-flawfinder kmod-analysis-format-check \
+       kmod-analysis-all analyze
 
 # Native builds
 build:
@@ -74,6 +75,9 @@ kmod-analysis-semgrep:
 
 kmod-analysis-flawfinder:
 	nix run .#kmod-analysis-flawfinder
+
+kmod-analysis-format-check:
+	nix run .#kmod-analysis-format-check
 
 kmod-analysis-all:
 	nix run .#kmod-analysis-all

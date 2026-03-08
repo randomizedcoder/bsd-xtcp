@@ -36,9 +36,9 @@
 
 #include "tcp_stats_kld.h"
 
-#define DEVPATH		"/dev/tcpstats"
-#define MAX_TEST_FDS	256
-#define READBUF_SIZE	(128 * 1024 * 1024)	/* 128 MB -- large enough for 400K records */
+#define DEVPATH	     "/dev/tcpstats"
+#define MAX_TEST_FDS 256
+#define READBUF_SIZE (128 * 1024 * 1024) /* 128 MB -- large enough for 400K records */
 
 static int
 get_sysctl_int(const char *name)
@@ -76,9 +76,9 @@ test_emfile(void)
 		fds[i] = open(DEVPATH, O_RDONLY);
 		if (fds[i] < 0) {
 			fprintf(stderr,
-			    "  [emfile] FAIL: open %d failed: %s "
-			    "(expected success)\n",
-			    i, strerror(errno));
+				"  [emfile] FAIL: open %d failed: %s "
+				"(expected success)\n",
+				i, strerror(errno));
 			passed = 0;
 			/* Close what we opened */
 			while (--i >= 0)
@@ -90,19 +90,20 @@ test_emfile(void)
 
 	/* The next open should fail with EMFILE */
 	printf("  [emfile] opening fd %d (should fail with EMFILE)...\n",
-	    max_fds);
+	       max_fds);
 	extra_fd = open(DEVPATH, O_RDONLY);
 	if (extra_fd >= 0) {
 		fprintf(stderr,
-		    "  [emfile] FAIL: open %d succeeded "
-		    "(expected EMFILE)\n", max_fds);
+			"  [emfile] FAIL: open %d succeeded "
+			"(expected EMFILE)\n",
+			max_fds);
 		close(extra_fd);
 		passed = 0;
 	} else if (errno != EMFILE) {
 		fprintf(stderr,
-		    "  [emfile] FAIL: open %d got errno=%d (%s), "
-		    "expected EMFILE (%d)\n",
-		    max_fds, errno, strerror(errno), EMFILE);
+			"  [emfile] FAIL: open %d got errno=%d (%s), "
+			"expected EMFILE (%d)\n",
+			max_fds, errno, strerror(errno), EMFILE);
 		passed = 0;
 	} else {
 		printf("  [emfile] OK: got EMFILE as expected\n");
@@ -116,8 +117,8 @@ test_emfile(void)
 	extra_fd = open(DEVPATH, O_RDONLY);
 	if (extra_fd < 0) {
 		fprintf(stderr,
-		    "  [emfile] FAIL: reopen after close failed: %s\n",
-		    strerror(errno));
+			"  [emfile] FAIL: reopen after close failed: %s\n",
+			strerror(errno));
 		passed = 0;
 	} else {
 		printf("  [emfile] OK: reopen after close succeeded\n");
@@ -149,7 +150,7 @@ test_timeout(int expected_connections)
 	fd = open(DEVPATH, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "  [timeout] FAIL: open: %s\n",
-		    strerror(errno));
+			strerror(errno));
 		return (0);
 	}
 
@@ -164,12 +165,12 @@ test_timeout(int expected_connections)
 	nbytes = read(fd, buf, READBUF_SIZE);
 	if (nbytes < 0) {
 		fprintf(stderr, "  [timeout] FAIL: read: %s\n",
-		    strerror(errno));
+			strerror(errno));
 		passed = 0;
 	} else {
 		records = (int)(nbytes / TCP_STATS_RECORD_SIZE);
 		printf("  [timeout] got %d records (bytes=%zd)\n",
-		    records, nbytes);
+		       records, nbytes);
 		/*
 		 * With a very short timeout (50ms) and many connections
 		 * (50K), we expect partial results -- fewer records than
@@ -178,13 +179,14 @@ test_timeout(int expected_connections)
 		 */
 		if (records >= expected_connections) {
 			fprintf(stderr,
-			    "  [timeout] FAIL: got %d records >= %d "
-			    "expected (timeout didn't limit)\n",
-			    records, expected_connections);
+				"  [timeout] FAIL: got %d records >= %d "
+				"expected (timeout didn't limit)\n",
+				records, expected_connections);
 			passed = 0;
 		} else {
 			printf("  [timeout] OK: partial result "
-			    "(%d < %d)\n", records, expected_connections);
+			       "(%d < %d)\n",
+			       records, expected_connections);
 		}
 	}
 
@@ -227,13 +229,13 @@ test_eintr(int expected_connections)
 	child = fork();
 	if (child < 0) {
 		fprintf(stderr, "  [eintr] FAIL: fork: %s\n",
-		    strerror(errno));
+			strerror(errno));
 		return (0);
 	}
 
 	if (child == 0) {
 		/* Child: sleep briefly, then signal parent */
-		usleep(10000);	/* 10ms */
+		usleep(10000); /* 10ms */
 		kill(parent, SIGUSR1);
 		_exit(0);
 	}
@@ -244,7 +246,7 @@ test_eintr(int expected_connections)
 	fd = open(DEVPATH, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "  [eintr] FAIL: open: %s\n",
-		    strerror(errno));
+			strerror(errno));
 		waitpid(child, &status, 0);
 		return (0);
 	}
@@ -270,18 +272,19 @@ test_eintr(int expected_connections)
 		 */
 		int records = (int)(nbytes / TCP_STATS_RECORD_SIZE);
 		printf("  [eintr] read completed (%d records) before signal\n",
-		    records);
+		       records);
 		if (got_signal) {
 			printf("  [eintr] OK: signal delivered "
-			    "(read was fast enough to complete)\n");
+			       "(read was fast enough to complete)\n");
 		} else {
 			printf("  [eintr] OK: read completed before signal "
-			    "(acceptable on fast hardware)\n");
+			       "(acceptable on fast hardware)\n");
 		}
 	} else {
 		fprintf(stderr,
-		    "  [eintr] FAIL: read returned -1 with errno=%d (%s), "
-		    "expected EINTR\n", errno, strerror(errno));
+			"  [eintr] FAIL: read returned -1 with errno=%d (%s), "
+			"expected EINTR\n",
+			errno, strerror(errno));
 		passed = 0;
 	}
 
@@ -307,8 +310,8 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: test_dos_limits <subtest> [expected_connections]\n"
-	    "  subtests: emfile, timeout, eintr\n");
+		"usage: test_dos_limits <subtest> [expected_connections]\n"
+		"  subtests: emfile, timeout, eintr\n");
 	exit(2);
 }
 

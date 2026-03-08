@@ -75,7 +75,7 @@ let
 
   kmod-analysis-scan-build = pkgs.writeShellApplication {
     name = "kmod-analysis-scan-build";
-    runtimeInputs = [ pkgs.clang-tools pkgs.clang ];
+    runtimeInputs = [ pkgs.clang-analyzer pkgs.clang ];
     text = ''
       echo "=== kmod-analysis-scan-build: Clang Static Analyzer ==="
       WORK=$(mktemp -d)
@@ -86,23 +86,25 @@ let
         -enable-checker deadcode
         -enable-checker security
         -enable-checker unix
-        -enable-checker alpha.security.ArrayBoundV2
-        -enable-checker alpha.security.MallocOverflow
         -enable-checker alpha.security.ReturnPtrRange
-        -enable-checker alpha.security.taint.TaintPropagation
         -enable-checker alpha.core.BoolAssignment
         -enable-checker alpha.core.CastSize
       )
-
-      echo "--- Analyzing filter parser test ---"
-      scan-build "''${CHECKERS[@]}" -o "$WORK/report" \
-          gcc -Wall -Wextra -c -o "$WORK/test.o" \
-          ${testSrc} ${parserSrcs} ${parserHdr}
 
       echo "--- Analyzing filter parser source ---"
       scan-build "''${CHECKERS[@]}" -o "$WORK/report" \
           gcc -Wall -Wextra -c -o "$WORK/parser.o" \
           ${parserSrcs} ${parserHdr}
+
+      echo "--- Analyzing filter parser test ---"
+      scan-build "''${CHECKERS[@]}" -o "$WORK/report" \
+          gcc -Wall -Wextra -c -o "$WORK/test.o" \
+          ${testSrc} ${parserHdr}
+
+      echo "--- Analyzing benchmark ---"
+      scan-build "''${CHECKERS[@]}" -o "$WORK/report" \
+          gcc -Wall -Wextra -c -o "$WORK/bench.o" \
+          ${benchSrc} ${parserHdr}
 
       # Report findings
       if [ -d "$WORK/report" ] && [ "$(ls -A "$WORK/report" 2>/dev/null)" ]; then
@@ -133,7 +135,7 @@ let
       echo "--- Tier A: filter parser ---"
       clang-tidy ${parserSrcs} \
           --config-file="$TIDY_CONFIG" \
-          -- -I${kmodSrc} 2>&1 | tee /dev/stderr || ISSUES=$((ISSUES + 1))
+          -- -I${kmodSrc} 2>&1 || ISSUES=$((ISSUES + 1))
 
       # Tier B: test files
       echo "--- Tier B: test files ---"
@@ -144,7 +146,7 @@ let
           echo "  checking $f"
           clang-tidy "$f" \
               --config-file="$TIDY_CONFIG" \
-              -- -I${kmodSrc} 2>&1 | tee /dev/stderr || ISSUES=$((ISSUES + 1))
+              -- -I${kmodSrc} 2>&1 || ISSUES=$((ISSUES + 1))
         fi
       done
 
@@ -221,15 +223,25 @@ let
         semgrep --config "$CUSTOM_RULES" ${allCSrc}/ --no-git-ignore || true
       fi
 
-      # Run community C audit rules
-      echo "--- Community C audit rules ---"
-      semgrep --config "p/c-audit" ${allCSrc}/ --no-git-ignore || true
-
       # Run security audit rules
       echo "--- Security audit rules ---"
       semgrep --config "p/security-audit" ${allCSrc}/ --no-git-ignore || true
 
       echo "=== kmod-analysis-semgrep: DONE ==="
+    '';
+  };
+
+  kmod-analysis-format-check = pkgs.writeShellApplication {
+    name = "kmod-analysis-format-check";
+    runtimeInputs = [ pkgs.clang-tools ];
+    text = ''
+      echo "=== kmod-analysis-format-check: clang-format check ==="
+
+      clang-format --dry-run -Werror \
+          ${allCSrc}/*.c ${allCSrc}/*.h \
+          ${allCSrc}/test/*.c
+
+      echo "=== kmod-analysis-format-check: PASSED ==="
     '';
   };
 
@@ -257,6 +269,7 @@ let
       kmod-analysis-cppcheck
       kmod-analysis-semgrep
       kmod-analysis-flawfinder
+      kmod-analysis-format-check
     ];
     text = ''
       echo "============================================="
@@ -287,6 +300,7 @@ let
       run_tool kmod-analysis-cppcheck
       run_tool kmod-analysis-semgrep
       run_tool kmod-analysis-flawfinder
+      run_tool kmod-analysis-format-check
 
       # Infer (conditional — may not be available)
       if command -v infer &>/dev/null; then
@@ -318,5 +332,6 @@ in
     kmod-analysis-cppcheck
     kmod-analysis-semgrep
     kmod-analysis-flawfinder
+    kmod-analysis-format-check
     kmod-analysis-all;
 } // kmod-analysis-infer

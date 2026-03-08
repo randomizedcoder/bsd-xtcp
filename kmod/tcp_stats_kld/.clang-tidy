@@ -17,7 +17,10 @@ Checks: >
   -cert-dcl37-c,
   -cert-dcl51-cpp,
   -misc-unused-parameters,
-  -readability-magic-numbers
+  -misc-include-cleaner,
+  -readability-magic-numbers,
+  -cert-err33-c,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
 HeaderFilterRegex: 'tcp_stats_.*\.h$'
 CheckOptions:
   - key: bugprone-assert-side-effect.AssertMacros

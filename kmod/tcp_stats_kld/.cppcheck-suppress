@@ -4,5 +4,8 @@ missingIncludeSystem
 // Kernel module callbacks registered via cdevsw/DECLARE_MODULE — not directly called.
 unusedFunction:tcp_stats_kld.c
 
-// Expected with --force multi-config mode (checks all #ifdef paths).
-ConfigurationNotChecked
+// Fuzzer entry point called by libFuzzer/AFL, not by application code.
+unusedFunction:test/fuzz_filter_parse.c
+
+// FreeBSD kernel macros (SDT_PROBE_DEFINE*, SLIST_HEAD, etc.) unavailable on Linux.
+unknownMacro

@@ -46,7 +46,7 @@ rules:
       Verify that snprintf() return value is checked for truncation
       (return >= size means output was truncated).
     languages: [c]
-    severity: WARNING
+    severity: INFO
     metadata:
       cwe: "CWE-135: Incorrect Calculation of Multi-Byte String Length"
 

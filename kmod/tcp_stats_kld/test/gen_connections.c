@@ -39,10 +39,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#define DEFAULT_COUNT		1000
-#define DEFAULT_BASE_PORT	9100
-#define NUM_LISTEN_PORTS	8
-#define MAX_CONNECTIONS		500000
+#define DEFAULT_COUNT	  1000
+#define DEFAULT_BASE_PORT 9100
+#define NUM_LISTEN_PORTS  8
+#define MAX_CONNECTIONS	  500000
 
 static volatile int running = 1;
 
@@ -57,10 +57,10 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: gen_connections [count] [base_port]\n"
-	    "  count      number of TCP connections (default %d, max %d)\n"
-	    "  base_port  starting listen port (default %d)\n",
-	    DEFAULT_COUNT, MAX_CONNECTIONS, DEFAULT_BASE_PORT);
+		"usage: gen_connections [count] [base_port]\n"
+		"  count      number of TCP connections (default %d, max %d)\n"
+		"  base_port  starting listen port (default %d)\n",
+		DEFAULT_COUNT, MAX_CONNECTIONS, DEFAULT_BASE_PORT);
 	exit(1);
 }
 
@@ -103,8 +103,8 @@ main(int argc, char *argv[])
 
 	/* Create listener sockets */
 	printf("Creating %d listeners on ports %d-%d...\n",
-	    NUM_LISTEN_PORTS, base_port,
-	    base_port + NUM_LISTEN_PORTS - 1);
+	       NUM_LISTEN_PORTS, base_port,
+	       base_port + NUM_LISTEN_PORTS - 1);
 
 	for (i = 0; i < NUM_LISTEN_PORTS; i++) {
 		struct sockaddr_in addr;
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
 
 		opt = 1;
 		setsockopt(listen_fds[i], SOL_SOCKET, SO_REUSEADDR,
-		    &opt, sizeof(opt));
+			   &opt, sizeof(opt));
 
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = AF_INET;
@@ -125,9 +125,9 @@ main(int argc, char *argv[])
 		addr.sin_port = htons(base_port + i);
 
 		if (bind(listen_fds[i], (struct sockaddr *)&addr,
-		    sizeof(addr)) < 0) {
+			 sizeof(addr)) < 0) {
 			fprintf(stderr, "bind port %d: %s\n",
-			    base_port + i, strerror(errno));
+				base_port + i, strerror(errno));
 			return (1);
 		}
 
@@ -150,8 +150,9 @@ main(int argc, char *argv[])
 		if (fd < 0) {
 			if (errno == EMFILE || errno == ENFILE) {
 				fprintf(stderr,
-				    "fd limit at %d connections "
-				    "(raise kern.maxfiles)\n", i);
+					"fd limit at %d connections "
+					"(raise kern.maxfiles)\n",
+					i);
 				break;
 			}
 			perror("socket(connect)");
@@ -164,16 +165,17 @@ main(int argc, char *argv[])
 		addr.sin_port = htons(base_port + port_idx);
 
 		if (connect(fd, (struct sockaddr *)&addr,
-		    sizeof(addr)) < 0) {
+			    sizeof(addr)) < 0) {
 			if (errno == EADDRNOTAVAIL) {
 				fprintf(stderr,
-				    "ephemeral ports exhausted at %d "
-				    "connections\n", i);
+					"ephemeral ports exhausted at %d "
+					"connections\n",
+					i);
 				close(fd);
 				break;
 			}
 			fprintf(stderr, "connect %d: %s\n",
-			    i, strerror(errno));
+				i, strerror(errno));
 			close(fd);
 			break;
 		}
@@ -183,7 +185,7 @@ main(int argc, char *argv[])
 		fd = accept(listen_fds[port_idx], NULL, NULL);
 		if (fd < 0) {
 			fprintf(stderr, "accept %d: %s\n",
-			    i, strerror(errno));
+				i, strerror(errno));
 			break;
 		}
 		accept_fds[i] = fd;
@@ -193,12 +195,13 @@ main(int argc, char *argv[])
 		/* Progress reporting */
 		if ((i + 1) % 1000 == 0 || i + 1 == count)
 			printf("  %d / %d established\r",
-			    total_established, count);
+			       total_established, count);
 	}
 	printf("\n");
 
 	printf("%d TCP connections established. "
-	    "Press Ctrl-C to close and exit.\n", total_established);
+	       "Press Ctrl-C to close and exit.\n",
+	       total_established);
 
 	/* Wait for signal */
 	while (running)
