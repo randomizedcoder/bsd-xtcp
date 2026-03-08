@@ -81,6 +81,18 @@ pub fn tune_tcp_timers() -> Result<()> {
     Ok(())
 }
 
+/// Read all dev.tcpstats.* sysctl values, returning key-value pairs.
+pub fn sysctl_get_all_tcpstats() -> Result<Vec<(String, String)>> {
+    let output = run_cmd("sysctl", &["dev.tcpstats"])?;
+    let mut pairs = Vec::new();
+    for line in output.lines() {
+        if let Some((key, val)) = line.split_once(": ") {
+            pairs.push((key.trim().to_string(), val.trim().to_string()));
+        }
+    }
+    Ok(pairs)
+}
+
 /// Check whether ipfw or pf firewalls are active and warn if so.
 /// These are warnings only — some firewalls may still allow loopback traffic.
 pub fn check_firewall() -> Result<()> {

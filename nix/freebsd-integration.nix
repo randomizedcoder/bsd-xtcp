@@ -73,7 +73,7 @@ let
     fi
     echo "--- ${name}: building KLD ---"
     case "$VM_TARGET" in
-      live_all|live_stats|live_dtrace)
+      live_all|live_stats|live_dtrace|live_soak|live_soak_24h|live_soak_48h)
         ssh "$VM_HOST" "cd $VM_DIR/kmod/tcp_stats_kld && make clean all EXTRA_CFLAGS='-DTCPSTATS_STATS -DTCPSTATS_DTRACE$KMOD_DEBUG_FLAG'"
         ;;
       *)
@@ -96,12 +96,28 @@ let
     if [ "''${TCPSTATS_DEBUG:-}" = "1" ]; then
       REMOTE_ENV="TCPSTATS_DEBUG=1 "
     fi
+    # Forward soak configuration env vars
+    if [ -n "''${SOAK_DURATION_HOURS:-}" ]; then
+      REMOTE_ENV="''${REMOTE_ENV}SOAK_DURATION_HOURS=''${SOAK_DURATION_HOURS} "
+    fi
+    if [ -n "''${SOAK_CONNECTIONS:-}" ]; then
+      REMOTE_ENV="''${REMOTE_ENV}SOAK_CONNECTIONS=''${SOAK_CONNECTIONS} "
+    fi
+
+    # SSH options: add keepalive for soak targets to survive long-running sessions
+    SSH_OPTS=()
+    case "$VM_TARGET" in
+      live_soak|live_soak_24h|live_soak_48h)
+        SSH_OPTS=(-o ServerAliveInterval=60 -o ServerAliveCountMax=2880)
+        ;;
+    esac
+
     echo "--- ${name}: running $VM_TARGET (category=$VM_CATEGORY) ---"
     TEST_RC=0
     if [ "$VM_TARGET" = "live_integration" ]; then
-      ssh "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --category $VM_CATEGORY --tcp-echo $VM_DIR/target/release/tcp-echo --kmod-src $VM_DIR/kmod/tcp_stats_kld --exporter $VM_DIR/target/release/tcp-stats-kld-exporter" || TEST_RC=$?
+      ssh "''${SSH_OPTS[@]}" "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --category $VM_CATEGORY --tcp-echo $VM_DIR/target/release/tcp-echo --bsd-xtcp $VM_DIR/target/release/bsd-xtcp --kmod-src $VM_DIR/kmod/tcp_stats_kld --exporter $VM_DIR/target/release/tcp-stats-kld-exporter" || TEST_RC=$?
     else
-      ssh "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --tcp-echo $VM_DIR/target/release/tcp-echo --kmod-src $VM_DIR/kmod/tcp_stats_kld --exporter $VM_DIR/target/release/tcp-stats-kld-exporter" || TEST_RC=$?
+      ssh "''${SSH_OPTS[@]}" "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --tcp-echo $VM_DIR/target/release/tcp-echo --bsd-xtcp $VM_DIR/target/release/bsd-xtcp --kmod-src $VM_DIR/kmod/tcp_stats_kld --exporter $VM_DIR/target/release/tcp-stats-kld-exporter" || TEST_RC=$?
     fi
 
     # Dump kmod debug log if TCPSTATS_DEBUG was enabled

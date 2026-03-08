@@ -209,6 +209,22 @@ impl ProcessGroup {
         }
     }
 
+    /// Check which processes are still alive.
+    /// Returns a vec of (label, alive) for each child in the group.
+    pub fn check_alive(&mut self) -> Vec<(&'static str, bool)> {
+        self.children
+            .iter_mut()
+            .map(|(label, child)| {
+                let alive = match child.try_wait() {
+                    Ok(Some(_status)) => false, // exited
+                    Ok(None) => true,           // still running
+                    Err(_) => false,            // error checking = treat as dead
+                };
+                (*label, alive)
+            })
+            .collect()
+    }
+
     /// Kill all processes and wait for sockets to drain.
     pub fn kill_all(&mut self) {
         for (label, child) in self.children.iter_mut().rev() {
