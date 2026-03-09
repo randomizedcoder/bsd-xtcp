@@ -130,7 +130,7 @@ pub fn run(config: ClientConfig) -> Result<()> {
                     .spawn(move || {
                         writer_loop(write_stream, &write_stats, &write_limiter, &write_data);
                     })
-                    .expect("failed to spawn writer thread");
+                    .context("failed to spawn writer thread")?;
 
                 // Spawn reader thread.
                 let read_stats = Arc::clone(&stats);
@@ -140,7 +140,7 @@ pub fn run(config: ClientConfig) -> Result<()> {
                     .spawn(move || {
                         reader_loop(stream, &read_stats);
                     })
-                    .expect("failed to spawn reader thread");
+                    .context("failed to spawn reader thread")?;
 
                 conn_handles.push(writer);
                 conn_handles.push(reader);

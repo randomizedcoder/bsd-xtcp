@@ -68,6 +68,7 @@ pub fn verify_device() -> Result<()> {
 pub fn tune_system() -> Result<()> {
     sysctl_set("kern.maxfiles", "500000")?;
     sysctl_set("kern.maxfilesperproc", "250000")?;
+    sysctl_set("kern.threads.max_threads_per_proc", "250000")?;
     sysctl_set("net.inet.ip.portrange.first", "1024")?;
     sysctl_set("net.inet.ip.portrange.last", "65535")?;
     Ok(())
