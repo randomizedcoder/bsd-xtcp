@@ -1,4 +1,0 @@
-[2026-03-04T22:39:47.037] test: B::b04
-[2026-03-04T22:39:47.037] filter: local_addr=127.0.0.11 local_port=9012 include_state=established
-[2026-03-04T22:39:47.037] expected: 20 (Eq)
-[2026-03-04T22:39:47.037] result: PASS

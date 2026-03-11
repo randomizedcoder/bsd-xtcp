@@ -1,5 +1,0 @@
-[2026-03-05T05:05:31.449] test: A::a03
-[2026-03-05T05:05:31.449] filter: local_addr=127.0.0.10 local_port=9103,9104
-[2026-03-05T05:05:31.449] expected: 42 (Eq)
-[2026-03-05T05:05:31.449] result: FAIL
-[2026-03-05T05:05:31.449] error: a03: multi local_port: FAIL — filter="local_addr=127.0.0.10 local_port=9103,9104" expected 42 (Eq), got 40

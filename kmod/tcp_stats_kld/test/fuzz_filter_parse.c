@@ -44,7 +44,7 @@ main(void)
 			struct tcpstats_filter filter;
 			char errbuf[TSF_ERRBUF_SIZE];
 			tsf_parse_filter_string(input, len,
-			    &filter, errbuf, sizeof(errbuf));
+						&filter, errbuf, sizeof(errbuf));
 		}
 	}
 	return 0;
@@ -65,7 +65,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	struct tcpstats_filter filter;
 	char errbuf[TSF_ERRBUF_SIZE];
 	tsf_parse_filter_string(input, size,
-	    &filter, errbuf, sizeof(errbuf));
+				&filter, errbuf, sizeof(errbuf));
 	return 0;
 }
 #endif

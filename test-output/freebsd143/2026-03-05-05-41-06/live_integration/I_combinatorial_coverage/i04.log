@@ -1,4 +1,0 @@
-[2026-03-05T05:51:35.888] test: I::i04
-[2026-03-05T05:51:35.888] filter: remote_addr=127.0.0.19 include_state=established local_addr=127.0.0.19
-[2026-03-05T05:51:35.888] expected: 40 (Ge)
-[2026-03-05T05:51:35.888] result: PASS

@@ -34,9 +34,9 @@
 #include "../tcp_stats_kld.h"
 #include "../tcp_stats_filter_parse.h"
 
-#define DEVPATH		"/dev/tcpstats"
-#define DEFAULT_ITERS	10
-#define DEFAULT_BUFSZ	(4 * 1024 * 1024)
+#define DEVPATH	      "/dev/tcpstats"
+#define DEFAULT_ITERS 10
+#define DEFAULT_BUFSZ (4 * 1024 * 1024)
 
 static int global_iterations;
 
@@ -55,13 +55,13 @@ timespec_to_us(struct timespec *ts)
  * ================================================================ */
 
 struct bench_result {
-	int	records;
-	double	time_us;
+	int records;
+	double time_us;
 };
 
 static struct bench_result
 do_single_read(const char *devpath, struct tcpstats_filter *filt,
-    size_t bufsz)
+	       size_t bufsz)
 {
 	struct bench_result res;
 	struct timespec start, end;
@@ -119,15 +119,13 @@ run_bench(const char *name, struct tcpstats_filter *filt, size_t bufsz)
 
 	double avg_us = total_us / global_iterations;
 	int avg_records = total_records / global_iterations;
-	double ns_per_rec = (avg_records > 0) ?
-	    (avg_us * 1000.0 / avg_records) : 0.0;
-	double recs_per_sec = (avg_us > 0) ?
-	    (avg_records / (avg_us / 1e6)) : 0.0;
+	double ns_per_rec = (avg_records > 0) ? (avg_us * 1000.0 / avg_records) : 0.0;
+	double recs_per_sec = (avg_us > 0) ? (avg_records / (avg_us / 1e6)) : 0.0;
 
 	printf("  %-28s  %6d recs  %10.1f us avg  "
-	    "[%8.1f - %8.1f]  %8.1f ns/rec  %10.0f rec/s\n",
-	    name, avg_records, avg_us, min_us, max_us,
-	    ns_per_rec, recs_per_sec);
+	       "[%8.1f - %8.1f]  %8.1f ns/rec  %10.0f rec/s\n",
+	       name, avg_records, avg_us, min_us, max_us,
+	       ns_per_rec, recs_per_sec);
 }
 
 /* ================================================================
@@ -135,11 +133,11 @@ run_bench(const char *name, struct tcpstats_filter *filt, size_t bufsz)
  * ================================================================ */
 
 struct thread_ctx {
-	int		nreads;
-	size_t		bufsz;
-	double		total_us;
-	int		total_records;
-	int		errors;
+	int nreads;
+	size_t bufsz;
+	double total_us;
+	int total_records;
+	int errors;
 };
 
 static void *
@@ -149,7 +147,7 @@ reader_thread(void *arg)
 
 	for (int i = 0; i < ctx->nreads; i++) {
 		struct bench_result r = do_single_read(DEVPATH, NULL,
-		    ctx->bufsz);
+						       ctx->bufsz);
 		if (r.time_us == 0.0 && r.records == 0)
 			ctx->errors++;
 		else {
@@ -205,9 +203,9 @@ run_concurrent(int nthreads, int reads_per_thread)
 	double avg_per_read = total_thread_us / (total_reads - total_errors);
 
 	printf("  %2d threads x %d reads: %10.1f us wall  "
-	    "%8.1f us/read avg  %d errors  %d total recs\n",
-	    nthreads, reads_per_thread, wall_us,
-	    avg_per_read, total_errors, total_records);
+	       "%8.1f us/read avg  %d errors  %d total recs\n",
+	       nthreads, reads_per_thread, wall_us,
+	       avg_per_read, total_errors, total_records);
 
 	free(threads);
 	free(ctxs);
@@ -235,20 +233,20 @@ main(int argc, char *argv[])
 	fd = open(DEVPATH, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "cannot open %s: %s\n"
-		    "  (is tcp_stats_kld loaded?)\n",
-		    DEVPATH, strerror(errno));
+				"  (is tcp_stats_kld loaded?)\n",
+			DEVPATH, strerror(errno));
 		return (1);
 	}
 	if (ioctl(fd, TCPSTATS_VERSION_CMD, &ver) == 0) {
 		printf("tcp_stats_kld v%u, record_size=%u, "
-		    "connection_hint=%u\n",
-		    ver.protocol_version, ver.record_size,
-		    ver.record_count_hint);
+		       "connection_hint=%u\n",
+		       ver.protocol_version, ver.record_size,
+		       ver.record_count_hint);
 	}
 	close(fd);
 
 	printf("\nRead-path benchmark -- %d iterations per workload\n",
-	    global_iterations);
+	       global_iterations);
 	printf("==========================================================\n");
 
 	/* Workload 1: Baseline (no filter) */
@@ -311,10 +309,9 @@ main(int argc, char *argv[])
 	/* Workload 5: Buffer size sweep */
 	printf("\n[5] Buffer size sweep\n");
 	{
-		size_t sizes[] = { 320, 4096, 65536, 1024*1024, 4*1024*1024 };
+		size_t sizes[] = {320, 4096, 65536, 1024 * 1024, 4 * 1024 * 1024};
 		const char *names[] = {
-		    "320B (1 rec)", "4KB", "64KB", "1MB", "4MB"
-		};
+		    "320B (1 rec)", "4KB", "64KB", "1MB", "4MB"};
 		for (int i = 0; i < 5; i++)
 			run_bench(names[i], NULL, sizes[i]);
 	}
@@ -322,10 +319,10 @@ main(int argc, char *argv[])
 	/* Workload 6: Concurrent readers */
 	printf("\n[6] Concurrent readers\n");
 	{
-		int concurrency[] = { 1, 2, 4, 8, 16 };
+		int concurrency[] = {1, 2, 4, 8, 16};
 		for (int i = 0; i < 5; i++)
 			run_concurrent(concurrency[i],
-			    global_iterations);
+				       global_iterations);
 	}
 
 	/* Workload 7: IPv4 only filter */

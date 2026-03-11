@@ -1,5 +1,0 @@
-[2026-03-05T05:12:26.307] test: E::e07
-[2026-03-05T05:12:26.307] filter: local_addr=127.0.0.16 local_port=9047,9048 exclude=listen
-[2026-03-05T05:12:26.307] expected: 40 (Eq)
-[2026-03-05T05:12:26.307] result: FAIL
-[2026-03-05T05:12:26.307] error: e07: multi-port + exclude listen: FAIL — filter="local_addr=127.0.0.16 local_port=9047,9048 exclude=listen" expected 40 (Eq), got 38

@@ -68,6 +68,7 @@ pub fn verify_device() -> Result<()> {
 pub fn tune_system() -> Result<()> {
     sysctl_set("kern.maxfiles", "500000")?;
     sysctl_set("kern.maxfilesperproc", "250000")?;
+    sysctl_set("kern.threads.max_threads_per_proc", "250000")?;
     sysctl_set("net.inet.ip.portrange.first", "1024")?;
     sysctl_set("net.inet.ip.portrange.last", "65535")?;
     Ok(())
@@ -79,6 +80,18 @@ pub fn tune_tcp_timers() -> Result<()> {
     sysctl_set("net.inet.tcp.msl", "100")?; // TIME_WAIT = 2×MSL = 200ms (default 30s)
     sysctl_set("net.inet.tcp.finwait2_timeout", "1000")?; // FIN_WAIT_2 = 1s (default 60s)
     Ok(())
+}
+
+/// Read all dev.tcpstats.* sysctl values, returning key-value pairs.
+pub fn sysctl_get_all_tcpstats() -> Result<Vec<(String, String)>> {
+    let output = run_cmd("sysctl", &["dev.tcpstats"])?;
+    let mut pairs = Vec::new();
+    for line in output.lines() {
+        if let Some((key, val)) = line.split_once(": ") {
+            pairs.push((key.trim().to_string(), val.trim().to_string()));
+        }
+    }
+    Ok(pairs)
 }
 
 /// Check whether ipfw or pf firewalls are active and warn if so.

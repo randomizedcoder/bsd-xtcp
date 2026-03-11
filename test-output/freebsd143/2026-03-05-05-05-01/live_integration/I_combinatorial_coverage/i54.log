@@ -1,4 +1,0 @@
-[2026-03-05T05:14:02.216] test: I::i54
-[2026-03-05T05:14:02.216] filter: local_port=9082 local_addr=127.0.0.19 include_state=established ipv4_only
-[2026-03-05T05:14:02.216] expected: 10 (Eq)
-[2026-03-05T05:14:02.216] result: PASS

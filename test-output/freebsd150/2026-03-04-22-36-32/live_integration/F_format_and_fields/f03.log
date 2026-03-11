@@ -1,4 +1,0 @@
-[2026-03-04T22:44:57.403] test: F::f03
-[2026-03-04T22:44:57.403] filter: local_addr=127.0.0.17 local_port=9053 format=compact
-[2026-03-04T22:44:57.403] expected: 21 (Eq)
-[2026-03-04T22:44:57.403] result: PASS

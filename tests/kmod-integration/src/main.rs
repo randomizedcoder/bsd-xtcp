@@ -22,6 +22,7 @@ const DEFAULT_READ_TCPSTATS: &str = "read_tcpstats";
 const DEFAULT_KMOD_SRC: &str = "kmod/tcp_stats_kld";
 const DEFAULT_CC: &str = "cc";
 const DEFAULT_EXPORTER: &str = "tcp-stats-kld-exporter";
+const DEFAULT_BSD_XTCP: &str = "bsd-xtcp";
 
 struct Config {
     tcp_echo: String,
@@ -29,6 +30,7 @@ struct Config {
     kmod_src: String,
     cc: String,
     exporter: String,
+    bsd_xtcp: String,
     target: String,
     category: String,
     output_dir: Option<PathBuf>,
@@ -43,6 +45,7 @@ fn parse_args() -> Config {
         kmod_src: DEFAULT_KMOD_SRC.to_string(),
         cc: DEFAULT_CC.to_string(),
         exporter: DEFAULT_EXPORTER.to_string(),
+        bsd_xtcp: DEFAULT_BSD_XTCP.to_string(),
         target: "all".to_string(),
         category: "all".to_string(),
         output_dir: None,
@@ -70,6 +73,10 @@ fn parse_args() -> Config {
             "--exporter" => {
                 i += 1;
                 cfg.exporter = args.get(i).cloned().unwrap_or_default();
+            }
+            "--bsd-xtcp" => {
+                i += 1;
+                cfg.bsd_xtcp = args.get(i).cloned().unwrap_or_default();
             }
             "--category" => {
                 i += 1;
@@ -111,17 +118,27 @@ Live targets (require root + kmod):
   live_integration [--category A|B|...|I|all]
   live_all
 
+Soak targets (long-running, require root + kmod):
+  live_soak         -- configurable via SOAK_DURATION_HOURS (default 24) and SOAK_CONNECTIONS (default 1000)
+  live_soak_24h     -- 24-hour soak test
+  live_soak_48h     -- 48-hour soak test
+
 Setup:
   pkg_setup       -- idempotent FreeBSD env setup
 
 Options:
   --tcp-echo PATH         -- path to tcp-echo binary
   --read-tcpstats PATH    -- path to read_tcpstats binary
+  --bsd-xtcp PATH         -- path to bsd-xtcp binary
   --kmod-src PATH         -- path to kmod source dir
   --cc PATH               -- C compiler (default: cc)
   --exporter PATH         -- path to tcp-stats-kld-exporter binary
   --category CAT          -- filter category for live_integration
-  --output-dir PATH       -- override output directory (default: /tmp/kmod-integration/TIMESTAMP)"
+  --output-dir PATH       -- override output directory (default: /tmp/kmod-integration/TIMESTAMP)
+
+Soak environment variables:
+  SOAK_DURATION_HOURS     -- soak duration in hours (default: 24, 0 = quick 2-cycle verify)
+  SOAK_CONNECTIONS        -- number of TCP connections to maintain (default: 1000)"
     );
 }
 
@@ -167,6 +184,11 @@ fn main() {
         "live_dos" => run_live_dos(&cfg, None, output_path),
         "live_integration" => run_live_integration(&cfg, output_path),
         "live_all" => run_live_all(&cfg, run_output.as_mut().ok()),
+
+        // Soak targets
+        "live_soak" => run_live_soak(&cfg, output_path),
+        "live_soak_24h" => run_live_soak_hours(&cfg, 24, output_path),
+        "live_soak_48h" => run_live_soak_hours(&cfg, 48, output_path),
 
         other => {
             eprintln!("unknown target: {other}");
@@ -502,4 +524,48 @@ fn run_live_all(cfg: &Config, run_output: Option<&mut RunOutput>) -> Result<()> 
         bail!("{failed} live target(s) failed");
     }
     Ok(())
+}
+
+fn run_live_soak(cfg: &Config, output_dir: Option<&Path>) -> Result<()> {
+    let duration_hours: u64 = std::env::var("SOAK_DURATION_HOURS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(24);
+    let connections: u32 = std::env::var("SOAK_CONNECTIONS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1000);
+
+    let read_tcpstats = ensure_read_tcpstats(cfg)?;
+
+    let soak_config = targets::soak::SoakConfig {
+        tcp_echo: cfg.tcp_echo.clone(),
+        read_tcpstats,
+        bsd_xtcp: cfg.bsd_xtcp.clone(),
+        kmod_src: cfg.kmod_src.clone(),
+        duration_hours,
+        connections,
+    };
+
+    targets::soak::run_soak(&soak_config, output_dir)
+}
+
+fn run_live_soak_hours(cfg: &Config, hours: u64, output_dir: Option<&Path>) -> Result<()> {
+    let connections: u32 = std::env::var("SOAK_CONNECTIONS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1000);
+
+    let read_tcpstats = ensure_read_tcpstats(cfg)?;
+
+    let soak_config = targets::soak::SoakConfig {
+        tcp_echo: cfg.tcp_echo.clone(),
+        read_tcpstats,
+        bsd_xtcp: cfg.bsd_xtcp.clone(),
+        kmod_src: cfg.kmod_src.clone(),
+        duration_hours: hours,
+        connections,
+    };
+
+    targets::soak::run_soak(&soak_config, output_dir)
 }

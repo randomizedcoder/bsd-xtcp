@@ -1,4 +1,0 @@
-[2026-03-05T03:58:48.717] test: B::b07
-[2026-03-05T03:58:48.717] filter: local_addr=127.0.0.11 local_port=9015 exclude=closed,listen,syn_sent,syn_received,established,close_wait,fin_wait_1,closing,last_ack,fin_wait_2,time_wait
-[2026-03-05T03:58:48.717] expected: 0 (Eq)
-[2026-03-05T03:58:48.717] result: PASS

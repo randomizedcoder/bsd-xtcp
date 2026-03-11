@@ -12,12 +12,20 @@
 #include "tcp_stats_kld.h"
 #include "tcp_stats_filter_parse.h"
 
-#define	READBUF_SIZE	(4 * 1024 * 1024)	/* 4 MB, ~13000 records max */
+#define READBUF_SIZE (4 * 1024 * 1024) /* 4 MB, ~13000 records max */
 
 static const char *tcp_states[] = {
-	"CLOSED",      "LISTEN",      "SYN_SENT",    "SYN_RCVD",
-	"ESTABLISHED", "CLOSE_WAIT",  "FIN_WAIT_1",  "CLOSING",
-	"LAST_ACK",    "FIN_WAIT_2",  "TIME_WAIT",
+    "CLOSED",
+    "LISTEN",
+    "SYN_SENT",
+    "SYN_RCVD",
+    "ESTABLISHED",
+    "CLOSE_WAIT",
+    "FIN_WAIT_1",
+    "CLOSING",
+    "LAST_ACK",
+    "FIN_WAIT_2",
+    "TIME_WAIT",
 };
 
 static const char *
@@ -32,13 +40,13 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: read_tcpstats [-acL] [-f filter] [-p port] [-P port]\n"
-	    "  -a        read from /dev/tcpstats-full\n"
-	    "  -c        count-only mode (print matching record count)\n"
-	    "  -f filter full filter string (mutually exclusive with -L and -P)\n"
-	    "  -L        exclude LISTEN sockets (kernel filter)\n"
-	    "  -p port   show only records matching port (userspace filter)\n"
-	    "  -P port   kernel-side local port filter\n");
+		"usage: read_tcpstats [-acL] [-f filter] [-p port] [-P port]\n"
+		"  -a        read from /dev/tcpstats-full\n"
+		"  -c        count-only mode (print matching record count)\n"
+		"  -f filter full filter string (mutually exclusive with -L and -P)\n"
+		"  -L        exclude LISTEN sockets (kernel filter)\n"
+		"  -p port   show only records matching port (userspace filter)\n"
+		"  -P port   kernel-side local port filter\n");
 	exit(1);
 }
 
@@ -53,12 +61,12 @@ main(int argc, char *argv[])
 	char *buf;
 	ssize_t nbytes;
 	int fd, count, matched, i, ch;
-	int flag_all = 0;	/* -a: use /dev/tcpstats-full */
-	int flag_count = 0;	/* -c: count-only output */
-	int flag_listen = 0;	/* -L: exclude LISTEN */
-	int filter_port = -1;	/* -p: port filter (-1 = disabled) */
-	int kernel_port = -1;	/* -P: kernel-side port filter */
-	const char *filter_str = NULL;	/* -f: full filter string */
+	int flag_all = 0;	       /* -a: use /dev/tcpstats-full */
+	int flag_count = 0;	       /* -c: count-only output */
+	int flag_listen = 0;	       /* -L: exclude LISTEN */
+	int filter_port = -1;	       /* -p: port filter (-1 = disabled) */
+	int kernel_port = -1;	       /* -P: kernel-side port filter */
+	const char *filter_str = NULL; /* -f: full filter string */
 
 	while ((ch = getopt(argc, argv, "acLf:p:P:")) != -1) {
 		switch (ch) {
@@ -111,7 +119,7 @@ main(int argc, char *argv[])
 		char errbuf[TSF_ERRBUF_SIZE];
 		memset(&filt, 0, sizeof(filt));
 		if (tsf_parse_filter_string(filter_str, strlen(filter_str),
-		    &filt, errbuf, sizeof(errbuf)) != 0) {
+					    &filt, errbuf, sizeof(errbuf)) != 0) {
 			fprintf(stderr, "filter parse error: %s\n", errbuf);
 			close(fd);
 			return (1);
@@ -145,8 +153,8 @@ main(int argc, char *argv[])
 			return (1);
 		}
 		printf("version=%u  record_size=%u  count_hint=%u\n",
-		    ver.protocol_version, ver.record_size,
-		    ver.record_count_hint);
+		       ver.protocol_version, ver.record_size,
+		       ver.record_count_hint);
 	}
 
 	buf = malloc(READBUF_SIZE);
@@ -183,28 +191,28 @@ main(int argc, char *argv[])
 
 		if (rec->tsr_af == AF_INET) {
 			inet_ntop(AF_INET, &rec->tsr_local_addr.v4,
-			    laddr, sizeof(laddr));
+				  laddr, sizeof(laddr));
 			inet_ntop(AF_INET, &rec->tsr_remote_addr.v4,
-			    raddr, sizeof(raddr));
+				  raddr, sizeof(raddr));
 		} else if (rec->tsr_af == AF_INET6) {
 			inet_ntop(AF_INET6, &rec->tsr_local_addr.v6,
-			    laddr, sizeof(laddr));
+				  laddr, sizeof(laddr));
 			inet_ntop(AF_INET6, &rec->tsr_remote_addr.v6,
-			    raddr, sizeof(raddr));
+				  raddr, sizeof(raddr));
 		} else {
 			strlcpy(laddr, "?", sizeof(laddr));
 			strlcpy(raddr, "?", sizeof(raddr));
 		}
 
 		printf("[%d] %s:%u -> %s:%u  state=%d(%s)",
-		    i, laddr, rec->tsr_local_port,
-		    raddr, rec->tsr_remote_port,
-		    rec->tsr_state, state_name(rec->tsr_state));
+		       i, laddr, rec->tsr_local_port,
+		       raddr, rec->tsr_remote_port,
+		       rec->tsr_state, state_name(rec->tsr_state));
 
 		if (rec->tsr_rtt > 0)
 			printf("  rtt=%u us  cwnd=%u  maxseg=%u",
-			    rec->tsr_rtt, rec->tsr_snd_cwnd,
-			    rec->tsr_maxseg);
+			       rec->tsr_rtt, rec->tsr_snd_cwnd,
+			       rec->tsr_maxseg);
 
 		if (rec->tsr_cc[0] != '\0')
 			printf("  cc=%s", rec->tsr_cc);
@@ -212,8 +220,8 @@ main(int argc, char *argv[])
 			printf("  stack=%s", rec->tsr_stack);
 
 		printf("  snd_buf=%u/%u  rcv_buf=%u/%u",
-		    rec->tsr_snd_buf_cc, rec->tsr_snd_buf_hiwat,
-		    rec->tsr_rcv_buf_cc, rec->tsr_rcv_buf_hiwat);
+		       rec->tsr_snd_buf_cc, rec->tsr_snd_buf_hiwat,
+		       rec->tsr_rcv_buf_cc, rec->tsr_rcv_buf_hiwat);
 
 		printf("  uid=%u\n", rec->tsr_uid);
 	}

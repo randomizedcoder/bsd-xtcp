@@ -1,4 +1,0 @@
-[2026-03-05T04:04:10.581] test: I::i06
-[2026-03-05T04:04:10.581] filter: remote_addr=127.0.0.19 exclude=established local_addr=127.0.0.19
-[2026-03-05T04:04:10.581] expected: 0 (Ge)
-[2026-03-05T04:04:10.581] result: PASS

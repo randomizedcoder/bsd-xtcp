@@ -1,0 +1,11 @@
+// FreeBSD kernel headers are not available on Linux — suppress system include warnings.
+missingIncludeSystem
+
+// Kernel module callbacks registered via cdevsw/DECLARE_MODULE — not directly called.
+unusedFunction:tcp_stats_kld.c
+
+// Fuzzer entry point called by libFuzzer/AFL, not by application code.
+unusedFunction:test/fuzz_filter_parse.c
+
+// FreeBSD kernel macros (SDT_PROBE_DEFINE*, SLIST_HEAD, etc.) unavailable on Linux.
+unknownMacro

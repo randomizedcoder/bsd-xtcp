@@ -1,0 +1,65 @@
+rules:
+  - id: kmod-no-sprintf
+    patterns:
+      - pattern: sprintf(...)
+    message: >
+      Use snprintf() instead of sprintf() to prevent buffer overflows.
+    languages: [c]
+    severity: ERROR
+    metadata:
+      cwe: "CWE-120: Buffer Copy without Checking Size of Input"
+
+  - id: kmod-no-strcpy
+    patterns:
+      - pattern: strcpy(...)
+    message: >
+      Use strlcpy() instead of strcpy() to prevent buffer overflows.
+    languages: [c]
+    severity: ERROR
+    metadata:
+      cwe: "CWE-120: Buffer Copy without Checking Size of Input"
+
+  - id: kmod-no-strcat
+    patterns:
+      - pattern: strcat(...)
+    message: >
+      Use strlcat() instead of strcat() to prevent buffer overflows.
+    languages: [c]
+    severity: ERROR
+    metadata:
+      cwe: "CWE-120: Buffer Copy without Checking Size of Input"
+
+  - id: kmod-no-gets
+    patterns:
+      - pattern: gets(...)
+    message: >
+      gets() is inherently unsafe. Use fgets() instead.
+    languages: [c]
+    severity: ERROR
+    metadata:
+      cwe: "CWE-242: Use of Inherently Dangerous Function"
+
+  - id: kmod-snprintf-truncation
+    patterns:
+      - pattern: snprintf($BUF, $SIZE, ...)
+    message: >
+      Verify that snprintf() return value is checked for truncation
+      (return >= size means output was truncated).
+    languages: [c]
+    severity: INFO
+    metadata:
+      cwe: "CWE-135: Incorrect Calculation of Multi-Byte String Length"
+
+  - id: kmod-bzero-sizeof-mismatch
+    patterns:
+      - pattern: bzero($PTR, sizeof($OTHER))
+      - metavariable-comparison:
+          metavariable: $PTR
+          comparison: str($PTR) != str($OTHER) and ("*" + str($PTR)) != str($OTHER)
+    message: >
+      bzero target '$PTR' does not match sizeof argument '$OTHER'.
+      Verify the size argument matches the target buffer.
+    languages: [c]
+    severity: WARNING
+    metadata:
+      cwe: "CWE-131: Incorrect Calculation of Buffer Size"

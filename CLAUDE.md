@@ -11,6 +11,8 @@ nix develop --command cargo clippy
 nix develop --command cargo build --release -p kmod-integration
 ```
 
+**Always `git add` new files.** Nix flakes only see files tracked by git. After creating any new file, run `git add <file>` so that nix commands can find it.
+
 ## Project structure
 
 - Root crate (`bsd-xtcp`) — FreeBSD TCP stats reader library

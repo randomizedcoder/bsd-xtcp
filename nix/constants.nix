@@ -33,7 +33,13 @@ rec {
     "valgrind"
     "kcachegrind"
     "flamegraph"
+    "cppcheck"
+    "flawfinder"
+    "semgrep"
   ];
+
+  # Clang-based C analysis tools (separate list — needs clang-tools).
+  cAnalysisTools = [ "clang-tools" ];
 
   # FreeBSD test VMs — rsync + SSH targets for kmod testing.
   freebsdVMs = {

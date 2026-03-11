@@ -1,4 +1,0 @@
-[2026-03-05T07:26:11.007] test: I::i41
-[2026-03-05T07:26:11.007] filter: include_state=established ipv6_only remote_addr=fd00::19 local_addr=fd00::19
-[2026-03-05T07:26:11.007] expected: 20 (Eq)
-[2026-03-05T07:26:11.007] result: PASS

@@ -1,4 +1,0 @@
-[2026-03-05T05:14:18.944] test: I::i27
-[2026-03-05T05:14:18.944] filter: remote_port=9081 include_state=listen ipv4_only local_addr=127.0.0.19
-[2026-03-05T05:14:18.944] expected: 0 (Eq)
-[2026-03-05T05:14:18.944] result: PASS
