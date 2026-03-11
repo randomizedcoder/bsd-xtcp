@@ -1,4 +1,0 @@
-[2026-03-05T07:26:10.996] test: I::i15
-[2026-03-05T07:26:10.996] filter: local_port=9081 remote_port=9082 remote_addr=127.0.0.19 local_addr=127.0.0.19
-[2026-03-05T07:26:10.996] expected: 0 (Eq)
-[2026-03-05T07:26:10.996] result: PASS

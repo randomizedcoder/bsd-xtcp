@@ -1,4 +1,0 @@
-[2026-03-04T22:45:55.680] test: I::i19
-[2026-03-04T22:45:55.680] filter: local_port=9083 ipv6_only remote_addr=fd00::19 local_addr=fd00::19
-[2026-03-04T22:45:55.680] expected: 10 (Eq)
-[2026-03-04T22:45:55.680] result: PASS

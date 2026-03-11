@@ -1,4 +1,0 @@
-[2026-03-04T22:45:55.704] test: I::i50
-[2026-03-04T22:45:55.704] filter: local_port=9081 local_addr=127.0.0.19 remote_addr=127.0.0.19 include_state=established
-[2026-03-04T22:45:55.704] expected: 10 (Eq)
-[2026-03-04T22:45:55.704] result: PASS

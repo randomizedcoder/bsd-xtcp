@@ -1,4 +1,0 @@
-[2026-03-05T04:04:04.745] test: I::i68
-[2026-03-05T04:04:04.745] filter: local_port=9081 remote_port=9082 local_addr=127.0.0.19 remote_addr=127.0.0.19 include_state=established ipv4_only
-[2026-03-05T04:04:04.745] expected: 0 (Eq)
-[2026-03-05T04:04:04.745] result: PASS

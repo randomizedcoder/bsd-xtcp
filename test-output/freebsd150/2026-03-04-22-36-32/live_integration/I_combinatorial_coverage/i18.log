@@ -1,4 +1,0 @@
-[2026-03-04T22:45:55.680] test: I::i18
-[2026-03-04T22:45:55.680] filter: local_port=9081 ipv4_only remote_addr=127.0.0.19 local_addr=127.0.0.19
-[2026-03-04T22:45:55.680] expected: 10 (Eq)
-[2026-03-04T22:45:55.680] result: PASS

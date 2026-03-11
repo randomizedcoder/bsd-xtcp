@@ -1,4 +1,0 @@
-[2026-03-05T05:50:14.211] test: F::f02
-[2026-03-05T05:50:14.211] filter: local_addr=127.0.0.17 local_port=9052 fields=all
-[2026-03-05T05:50:14.211] expected: 21 (Eq)
-[2026-03-05T05:50:14.211] result: PASS

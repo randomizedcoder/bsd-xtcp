@@ -62,3 +62,6 @@ target/
 # Nix
 /result
 /result-*
+
+#soak testing
+test-output

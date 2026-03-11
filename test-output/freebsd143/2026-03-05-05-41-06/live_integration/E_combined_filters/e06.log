@@ -1,4 +1,0 @@
-[2026-03-05T05:49:15.846] test: E::e06
-[2026-03-05T05:49:15.846] filter: local_addr=127.0.0.16 local_port=9046 format=full
-[2026-03-05T05:49:15.846] expected: 21 (Eq)
-[2026-03-05T05:49:15.846] result: PASS

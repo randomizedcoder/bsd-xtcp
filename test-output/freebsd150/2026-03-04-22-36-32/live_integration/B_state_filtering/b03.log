@@ -1,4 +1,0 @@
-[2026-03-04T22:39:33.980] test: B::b03
-[2026-03-04T22:39:33.980] filter: local_addr=127.0.0.11 local_port=9018 exclude=listen,time_wait
-[2026-03-04T22:39:33.980] expected: 20 (Eq)
-[2026-03-04T22:39:33.980] result: PASS

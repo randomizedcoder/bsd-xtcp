@@ -1,4 +1,0 @@
-[2026-03-04T22:45:55.697] test: I::i42
-[2026-03-04T22:45:55.697] filter: include_state=listen ipv4_only remote_addr=127.0.0.19 local_addr=127.0.0.19
-[2026-03-04T22:45:55.697] expected: 0 (Eq)
-[2026-03-04T22:45:55.697] result: PASS

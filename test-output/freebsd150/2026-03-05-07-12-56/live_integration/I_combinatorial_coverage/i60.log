@@ -1,4 +1,0 @@
-[2026-03-05T07:23:25.613] test: I::i60
-[2026-03-05T07:23:25.613] filter: remote_port=9081 remote_addr=127.0.0.19 include_state=listen ipv6_only
-[2026-03-05T07:23:25.613] expected: 0 (Eq)
-[2026-03-05T07:23:25.613] result: PASS

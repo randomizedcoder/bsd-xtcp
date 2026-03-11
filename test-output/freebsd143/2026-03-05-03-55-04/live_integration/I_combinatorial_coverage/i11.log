@@ -1,4 +1,0 @@
-[2026-03-05T04:04:04.705] test: I::i11
-[2026-03-05T04:04:04.705] filter: include_state=listen ipv6_only local_addr=fd00::19
-[2026-03-05T04:04:04.705] expected: 1 (Eq)
-[2026-03-05T04:04:04.705] result: PASS

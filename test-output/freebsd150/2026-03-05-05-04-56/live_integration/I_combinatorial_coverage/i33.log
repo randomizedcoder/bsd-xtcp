@@ -1,4 +1,0 @@
-[2026-03-05T05:14:18.947] test: I::i33
-[2026-03-05T05:14:18.947] filter: local_addr=fd00::19 exclude=listen ipv6_only
-[2026-03-05T05:14:18.947] expected: 20 (Eq)
-[2026-03-05T05:14:18.947] result: PASS

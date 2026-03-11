@@ -1,5 +1,0 @@
-[2026-03-05T04:02:36.804] test: E::e08
-[2026-03-05T04:02:36.804] filter: local_addr=127.0.0.16 remote_port=9041 include_state=established
-[2026-03-05T04:02:36.804] expected: 20 (Eq)
-[2026-03-05T04:02:36.804] result: FAIL
-[2026-03-05T04:02:36.804] error: e08: remote_port + include_state: FAIL — filter="local_addr=127.0.0.16 remote_port=9041 include_state=established" expected 20 (Eq), got 19

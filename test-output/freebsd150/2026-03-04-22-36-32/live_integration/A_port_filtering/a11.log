@@ -1,4 +1,0 @@
-[2026-03-04T22:38:41.686] test: A::a11
-[2026-03-04T22:38:41.686] filter: local_addr=127.0.0.10 local_port=9001 exclude=listen
-[2026-03-04T22:38:41.686] expected: 20 (Eq)
-[2026-03-04T22:38:41.686] result: PASS
