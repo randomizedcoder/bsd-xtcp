@@ -1,6 +1,6 @@
 # Filter String Parsing Design for `tcp_stats_kld`
 
-[Back to kernel module design](kernel-module.md) | [Back to designs](../05-kernel-module.md)
+[← Back to README](../../README.md) | [Back to kernel module design](05-kernel-module.md)
 
 ## 1. Overview & Architectural Decision
 
@@ -1816,10 +1816,10 @@ byte-wise comparison which compiles to efficient `memcmp` on amd64.
 
 ## Cross-References
 
-- **Kernel module design**: [kernel-module.md](kernel-module.md)
+- **Kernel module design**: [05-kernel-module.md](05-kernel-module.md)
   - Section 12.3: `tcpstats_filter` struct definition (updated to match this document)
   - Section 12.4: `tcpstats_match()` implementation (updated for CIDR)
   - Section 12.5: Named filter profiles via sysctl
   - Section 12.7: Filter string syntax (references this document)
   - Section 12.10: Filter safety (references validation tables in this document)
-- **Top-level design**: [../05-kernel-module.md](../05-kernel-module.md)
+- **Kernel module implementation plan**: [../../archive/kernel-module-impl-plan.md](../../archive/kernel-module-impl-plan.md)
