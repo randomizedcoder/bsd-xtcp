@@ -34,6 +34,10 @@ pub struct ClientConfig {
     pub report_interval: Duration,
     pub duration: Duration,
     pub payload_size: usize,
+    pub adaptive_ramp: bool,
+    pub ramp_batch: u32,
+    pub ramp_max_batch: u32,
+    pub ramp_max_retries: u32,
 }
 
 impl Default for ClientConfig {
@@ -47,6 +51,10 @@ impl Default for ClientConfig {
             report_interval: Duration::from_secs(10),
             duration: Duration::ZERO, // 0 = infinite
             payload_size: 1024,
+            adaptive_ramp: false,
+            ramp_batch: 50,
+            ramp_max_batch: 2000,
+            ramp_max_retries: 3,
         }
     }
 }
@@ -223,6 +231,42 @@ fn parse_client_args(args: &[String]) -> Result<Command, String> {
                 }
                 config.payload_size = sz;
             }
+            "--adaptive-ramp" => {
+                config.adaptive_ramp = true;
+            }
+            "--ramp-batch" => {
+                i += 1;
+                let n: u32 = args
+                    .get(i)
+                    .ok_or("--ramp-batch requires a value")?
+                    .parse()
+                    .map_err(|e| format!("invalid --ramp-batch value: {e}"))?;
+                if n == 0 {
+                    return Err("--ramp-batch must be positive".into());
+                }
+                config.ramp_batch = n;
+            }
+            "--ramp-max-batch" => {
+                i += 1;
+                let n: u32 = args
+                    .get(i)
+                    .ok_or("--ramp-max-batch requires a value")?
+                    .parse()
+                    .map_err(|e| format!("invalid --ramp-max-batch value: {e}"))?;
+                if n == 0 {
+                    return Err("--ramp-max-batch must be positive".into());
+                }
+                config.ramp_max_batch = n;
+            }
+            "--ramp-max-retries" => {
+                i += 1;
+                let n: u32 = args
+                    .get(i)
+                    .ok_or("--ramp-max-retries requires a value")?
+                    .parse()
+                    .map_err(|e| format!("invalid --ramp-max-retries value: {e}"))?;
+                config.ramp_max_retries = n;
+            }
             "--help" | "-h" => {
                 print_client_usage();
                 std::process::exit(0);
@@ -313,6 +357,10 @@ Options:
   --report-interval SECS   Stats reporting interval in seconds (default: 10)
   --duration SECS          Total runtime, 0 = infinite (default: 0)
   --payload-size BYTES     Size of each write call (default: 1024)
+  --adaptive-ramp          Use adaptive batch-based ramp instead of fixed interval
+  --ramp-batch N           Initial batch size for adaptive ramp (default: 50)
+  --ramp-max-batch N       Maximum batch size for adaptive ramp (default: 2000)
+  --ramp-max-retries N     Max retries per failed connection in adaptive mode (default: 3)
   --help, -h               Show this help message"
     );
 }

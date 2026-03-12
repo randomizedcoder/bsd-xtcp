@@ -8,6 +8,13 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail};
 use chrono::Local;
 
+/// Parsed result from a RAMP_COMPLETE sentinel line.
+pub struct RampCompleteResult {
+    pub connected: u32,
+    pub failed: u32,
+    pub elapsed_secs: f64,
+}
+
 /// A group of background processes (server + clients) that are killed on drop.
 pub struct ProcessGroup {
     children: Vec<(&'static str, Child)>,
@@ -193,6 +200,88 @@ impl ProcessGroup {
         Ok(())
     }
 
+    /// Spawn tcp-echo clients with adaptive ramp. Returns immediately without sleeping.
+    /// Use `wait_for_ramp_complete()` to block until the ramp phase finishes.
+    #[allow(clippy::too_many_arguments)]
+    pub fn start_clients_adaptive(
+        &mut self,
+        tcp_echo: &str,
+        host: &str,
+        ports: &str,
+        connections: u32,
+        report_interval: u32,
+        ramp_batch: u32,
+        ramp_max_batch: u32,
+    ) -> Result<()> {
+        let log_name = format!("client-{host}-{ports}.stderr");
+        let log_path = self.log_dir.join(&log_name);
+        let stderr_file = File::create(&log_path)
+            .with_context(|| format!("create stderr log {}", log_path.display()))?;
+
+        let child = Command::new(tcp_echo)
+            .args([
+                "client",
+                "--host",
+                host,
+                "--ports",
+                ports,
+                "--connections",
+                &connections.to_string(),
+                "--adaptive-ramp",
+                "--ramp-batch",
+                &ramp_batch.to_string(),
+                "--ramp-max-batch",
+                &ramp_max_batch.to_string(),
+                "--rate",
+                "1024",
+                "--duration",
+                "0",
+                "--report-interval",
+                &report_interval.to_string(),
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::from(stderr_file))
+            .spawn()
+            .with_context(|| format!("spawn adaptive client to {host}:{ports}"))?;
+
+        self.stderr_logs.push((log_name, log_path));
+
+        self.children.push(("client", child));
+        Ok(())
+    }
+
+    /// Wait for the most recently spawned client to emit a RAMP_COMPLETE sentinel.
+    /// Polls the client's stderr log file every 2 seconds.
+    /// Returns the parsed ramp result, or an error on timeout.
+    pub fn wait_for_ramp_complete(
+        &self,
+        timeout: Duration,
+    ) -> Result<RampCompleteResult> {
+        // Find the last client stderr log.
+        let (_label, log_path) = self
+            .stderr_logs
+            .iter()
+            .rfind(|(l, _)| l.starts_with("client-"))
+            .ok_or_else(|| anyhow::anyhow!("no client stderr log found"))?;
+
+        let deadline = Instant::now() + timeout;
+
+        while Instant::now() < deadline {
+            if let Ok(contents) = fs::read_to_string(log_path) {
+                if let Some(result) = parse_ramp_complete(&contents) {
+                    return Ok(result);
+                }
+            }
+            thread::sleep(Duration::from_secs(2));
+        }
+
+        bail!(
+            "timed out waiting for RAMP_COMPLETE after {}s in {}",
+            timeout.as_secs(),
+            log_path.display()
+        )
+    }
+
     /// Print the contents of any non-empty stderr log files.
     pub fn dump_stderr(&self) {
         for (label, path) in &self.stderr_logs {
@@ -358,4 +447,37 @@ pub fn run_cmd_ok(cmd: &str, args: &[&str]) -> Result<bool> {
         .with_context(|| format!("run {cmd}"))?;
 
     Ok(status.success())
+}
+
+/// Parse a RAMP_COMPLETE sentinel line from client stderr output.
+/// Format: `[client] RAMP_COMPLETE connected=N failed=M elapsed=Xs`
+fn parse_ramp_complete(text: &str) -> Option<RampCompleteResult> {
+    for line in text.lines().rev() {
+        if !line.contains("RAMP_COMPLETE") {
+            continue;
+        }
+        let mut connected = None;
+        let mut failed = None;
+        let mut elapsed_secs = None;
+
+        for part in line.split_whitespace() {
+            if let Some(val) = part.strip_prefix("connected=") {
+                connected = val.parse().ok();
+            } else if let Some(val) = part.strip_prefix("failed=") {
+                failed = val.parse().ok();
+            } else if let Some(val) = part.strip_prefix("elapsed=") {
+                let val = val.trim_end_matches('s');
+                elapsed_secs = val.parse().ok();
+            }
+        }
+
+        if let (Some(c), Some(f), Some(e)) = (connected, failed, elapsed_secs) {
+            return Some(RampCompleteResult {
+                connected: c,
+                failed: f,
+                elapsed_secs: e,
+            });
+        }
+    }
+    None
 }

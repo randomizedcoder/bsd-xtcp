@@ -92,20 +92,42 @@ pub fn run_soak(config: &SoakConfig, output_dir: Option<&Path>) -> Result<()> {
 
     procs.start_server(&config.tcp_echo, bind, port, 600)?;
 
-    // Use longer ramp for high connection counts
-    let ramp_secs = std::cmp::max(5, connections / 40);
-    let settle_secs = u64::from(ramp_secs) + 5;
-    procs.start_clients_with_ramp(
-        &config.tcp_echo,
-        bind,
-        port,
-        connections,
-        600,
-        ramp_secs,
-        settle_secs,
-    )?;
+    // Use adaptive ramp for high connection counts, fixed ramp for small ones
+    if connections > 500 {
+        procs.start_clients_adaptive(
+            &config.tcp_echo,
+            bind,
+            port,
+            connections,
+            600,
+            50,    // ramp_batch
+            2000,  // ramp_max_batch
+        )?;
 
-    println!("  server + client started, connections ramping...");
+        println!("  server + client started, adaptive ramp in progress...");
+
+        // Wait for ramp to complete — generous timeout scales with connection count
+        let timeout_secs = std::cmp::max(120, u64::from(connections) / 10);
+        let ramp_result = procs.wait_for_ramp_complete(Duration::from_secs(timeout_secs))?;
+        println!(
+            "  ramp complete: connected={}, failed={}, elapsed={:.1}s",
+            ramp_result.connected, ramp_result.failed, ramp_result.elapsed_secs
+        );
+    } else {
+        let ramp_secs = std::cmp::max(5, connections / 40);
+        let settle_secs = u64::from(ramp_secs) + 5;
+        procs.start_clients_with_ramp(
+            &config.tcp_echo,
+            bind,
+            port,
+            connections,
+            600,
+            ramp_secs,
+            settle_secs,
+        )?;
+
+        println!("  server + client started, connections ramping...");
+    }
 
     // Verify initial connection count
     let initial_count = read_count(&config.read_tcpstats, "local_port=9090")?;
