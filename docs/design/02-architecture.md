@@ -1,4 +1,4 @@
-[← Back to main document](../freebsd-tcp-stats-design.md)
+[← Back to README](../../README.md)
 
 # Tool Architecture and Record Schemas
 
@@ -60,6 +60,8 @@
 ```
 
 ### 3.2 Polling Architecture
+
+> **Note:** The fixed 4-tier polling model described below was superseded by the configurable `interval_ms` and `schedule_name` approach in [08-protobuf-schema.md](08-protobuf-schema.md), which supports user-defined schedules from 10ms to 24h.
 
 The tool supports four polling tiers, each independently configurable:
 

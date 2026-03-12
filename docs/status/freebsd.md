@@ -272,7 +272,7 @@ The fix adds `-DKDTRACE_HOOKS` automatically in the Makefile when `-DTCPSTATS_DT
 
 ## Performance & Security Hardening
 
-All 13 items from the performance/security plan are implemented and verified via `live_all` on both FreeBSD 14.3 and 15.0. Details in `design/freebsd/kernel-module-perfomrance-and-security-plan.md` (analysis) and `design/freebsd/kernel-module-perfomrance-and-security-log.md` (implementation log).
+All 13 items from the performance/security plan are implemented and verified via `live_all` on both FreeBSD 14.3 and 15.0. Details in [../design/10-performance-security.md](../design/10-performance-security.md) (analysis) and [../../archive/perf-security-log.md](../../archive/perf-security-log.md) (implementation log).
 
 ### Implementation summary
 
