@@ -34,7 +34,7 @@ impl MetricsSnapshot {
     }
 }
 
-/// Handle for a running tcp-stats-kld-exporter process.
+/// Handle for a running tcpstats-exporter process.
 pub struct ExporterHandle {
     child: Child,
     addr: String,
@@ -113,8 +113,18 @@ impl ExporterHandle {
         );
 
         // sockets_total before/after
-        let before_total = diff.before.simple.get("tcpstats_sockets_total").copied().unwrap_or(0.0);
-        let after_total = diff.after.simple.get("tcpstats_sockets_total").copied().unwrap_or(0.0);
+        let before_total = diff
+            .before
+            .simple
+            .get("tcpstats_sockets_total")
+            .copied()
+            .unwrap_or(0.0);
+        let after_total = diff
+            .after
+            .simple
+            .get("tcpstats_sockets_total")
+            .copied()
+            .unwrap_or(0.0);
         let delta_total = after_total - before_total;
         println!(
             "    sockets_total: {} -> {} (delta {:+})",
@@ -123,17 +133,32 @@ impl ExporterHandle {
 
         // Non-zero sys counter deltas (short names)
         let counter_names = [
-            ("tcpstats_sys_connection_attempts_total", "connection_attempts_total"),
+            (
+                "tcpstats_sys_connection_attempts_total",
+                "connection_attempts_total",
+            ),
             ("tcpstats_sys_accepts_total", "accepts_total"),
             ("tcpstats_sys_connects_total", "connects_total"),
             ("tcpstats_sys_drops_total", "drops_total"),
             ("tcpstats_sys_sent_packets_total", "sent_packets_total"),
             ("tcpstats_sys_sent_bytes_total", "sent_bytes_total"),
-            ("tcpstats_sys_retransmit_packets_total", "retransmit_packets_total"),
-            ("tcpstats_sys_retransmit_bytes_total", "retransmit_bytes_total"),
-            ("tcpstats_sys_received_packets_total", "received_packets_total"),
+            (
+                "tcpstats_sys_retransmit_packets_total",
+                "retransmit_packets_total",
+            ),
+            (
+                "tcpstats_sys_retransmit_bytes_total",
+                "retransmit_bytes_total",
+            ),
+            (
+                "tcpstats_sys_received_packets_total",
+                "received_packets_total",
+            ),
             ("tcpstats_sys_received_bytes_total", "received_bytes_total"),
-            ("tcpstats_sys_duplicate_packets_total", "duplicate_packets_total"),
+            (
+                "tcpstats_sys_duplicate_packets_total",
+                "duplicate_packets_total",
+            ),
             ("tcpstats_sys_bad_checksum_total", "bad_checksum_total"),
         ];
 
@@ -206,7 +231,12 @@ fn http_get(addr: &str, path: &str) -> Result<(u16, String), String> {
 }
 
 /// Parse Prometheus text exposition format into simple and labeled metric maps.
-fn parse_prometheus(body: &str) -> (BTreeMap<String, f64>, BTreeMap<String, BTreeMap<String, f64>>) {
+fn parse_prometheus(
+    body: &str,
+) -> (
+    BTreeMap<String, f64>,
+    BTreeMap<String, BTreeMap<String, f64>>,
+) {
     let mut simple = BTreeMap::new();
     let mut labeled: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
 

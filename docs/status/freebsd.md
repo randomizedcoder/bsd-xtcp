@@ -1,20 +1,20 @@
 # FreeBSD Implementation Status
 
-## Kernel Module: tcp_stats_kld
+## Kernel Module: tcpstats
 
-The `tcp_stats_kld` kernel module provides per-socket TCP statistics via a character device (`/dev/tcp_stats`). It includes a filter parser that accepts filter strings like `local_port=443 exclude=listen,timewait` to control which sockets are reported.
+The `tcpstats` kernel module provides per-socket TCP statistics via a character device (`/dev/tcp_stats`). It includes a filter parser that accepts filter strings like `local_port=443 exclude=listen,timewait` to control which sockets are reported.
 
 ### Kernel module build
 
-The kmod builds cleanly on both FreeBSD 14.3-RELEASE and 15.0-RELEASE using the system `cc` (clang) and `/usr/src/sys` kernel headers.
+The kmod builds cleanly on FreeBSD 14.3-RELEASE, 14.4-RELEASE, and 15.0-RELEASE using the system `cc` (clang) and `/usr/src/sys` kernel headers.
 
 ```sh
-cd kmod/tcp_stats_kld
+cd kmod/tcpstats
 make clean all
-# produces tcp_stats_kld.ko
+# produces tcpstats.ko
 ```
 
-### Filter parser (tcp_stats_filter_parse.c)
+### Filter parser (tcp_statsdev_filter.c)
 
 Dual-compile parser: compiles as both `_KERNEL` code inside the kmod and as userspace code for testing. Supports directives:
 
@@ -33,24 +33,24 @@ Fifteen test targets run on the FreeBSD VM, covering correctness, memory safety,
 
 ### Test results
 
-Verified on both VMs from a single `nix run .#kmod-test-freebsd -- live_all` invocation:
+Verified on all VMs from a single `nix run .#kmod-test-freebsd -- live_all` invocation:
 
-| Target | FreeBSD 14.3-RELEASE | FreeBSD 15.0-RELEASE | What it tests |
-|--------|---------------------|---------------------|---------------|
-| unit | PASS (78/78) | PASS (78/78) | Functional correctness: positive parsing, error rejection, value verification |
-| memcheck | PASS (0 errors) | PASS (0 errors) | Valgrind memcheck: leak detection, use-after-free, uninitialized reads |
-| asan | PASS | PASS | AddressSanitizer + UBSan: buffer overflows, use-after-free, undefined behavior |
-| ubsan | PASS | PASS | UndefinedBehaviorSanitizer standalone: signed overflow, shift errors, null derefs |
-| bench | PASS | PASS | Performance benchmark: 1M iterations across 11 workloads |
-| callgrind | PASS | PASS | Callgrind CPU profiling: instruction-level hotspot analysis |
-| kmod | PASS | PASS | Kernel module compilation: `tcp_stats_kld.ko` produced with `-Werror` |
-| bench_read | PASS | PASS | Read-path microbenchmark compilation (7 workloads incl. concurrent readers) |
-| gen_conn | PASS | PASS | Loopback connection generator compilation (up to 500K connections) |
-| live_smoke | PASS | PASS | Kmod lifecycle: load, read /dev/tcpstats, verify sysctl tree, unload |
-| live_bench | PASS | PASS | Read-path benchmark at 1K/10K/100K connections (7 workloads + concurrent readers) |
-| live_stats | PASS | PASS | Sysctl counter invariant: visited == emitted + sum(skipped) |
-| live_dtrace | PASS | PASS | DTrace SDT probes register and fire (7 probes via KDTRACE_HOOKS) |
-| live_dos | PASS | PASS | DoS protections: EMFILE limit, read timeout partial results, EINTR signal |
+| Target | FreeBSD 14.3 | FreeBSD 14.4 | FreeBSD 15.0 | What it tests |
+|--------|-------------|-------------|-------------|---------------|
+| unit | PASS (78/78) | PASS (78/78) | PASS (78/78) | Functional correctness: positive parsing, error rejection, value verification |
+| memcheck | PASS (0 errors) | PASS (0 errors) | PASS (0 errors) | Valgrind memcheck: leak detection, use-after-free, uninitialized reads |
+| asan | PASS | PASS | PASS | AddressSanitizer + UBSan: buffer overflows, use-after-free, undefined behavior |
+| ubsan | PASS | PASS | PASS | UndefinedBehaviorSanitizer standalone: signed overflow, shift errors, null derefs |
+| bench | PASS | PASS | PASS | Performance benchmark: 1M iterations across 11 workloads |
+| callgrind | PASS | PASS | PASS | Callgrind CPU profiling: instruction-level hotspot analysis |
+| kmod | PASS | PASS | PASS | Kernel module compilation: `tcpstats.ko` produced with `-Werror` |
+| bench_read | PASS | PASS | PASS | Read-path microbenchmark compilation (7 workloads incl. concurrent readers) |
+| gen_conn | PASS | PASS | PASS | Loopback connection generator compilation (up to 500K connections) |
+| live_smoke | PASS | PASS | PASS | Kmod lifecycle: load, read /dev/tcpstats, verify sysctl tree, unload |
+| live_bench | PASS | PASS | PASS | Read-path benchmark at 1K/10K/100K connections (7 workloads + concurrent readers) |
+| live_stats | PASS | PASS | PASS | Sysctl counter invariant: visited == emitted + sum(skipped) |
+| live_dtrace | PASS | PASS | PASS | DTrace SDT probes register and fire (7 probes via KDTRACE_HOOKS) |
+| live_dos | PASS | PASS | PASS | DoS protections: EMFILE limit, read timeout partial results, EINTR signal |
 
 ### Benchmark results (post-optimization)
 
@@ -117,7 +117,7 @@ nix run .#kmod-test-freebsd -- live_dos
 FREEBSD_HOST=root@192.168.122.27 nix run .#kmod-test-freebsd
 
 # Direct on VM (after rsync)
-ssh root@192.168.122.41 'sh /root/bsd-xtcp/kmod/tcp_stats_kld/test/run-tests-freebsd.sh all'
+ssh root@192.168.122.41 'sh /root/tcpstats-reader/kmod/tcpstats/test/run-tests-freebsd.sh all'
 ```
 
 ### Available targets
@@ -130,7 +130,7 @@ ssh root@192.168.122.41 'sh /root/bsd-xtcp/kmod/tcp_stats_kld/test/run-tests-fre
 | `ubsan` | UndefinedBehaviorSanitizer standalone |
 | `bench` | Performance benchmark (1M iterations, 11 workloads) |
 | `callgrind` | Callgrind CPU profiling + annotation |
-| `kmod` | Build kernel module (`tcp_stats_kld.ko`) |
+| `kmod` | Build kernel module (`tcpstats.ko`) |
 | `bench_read` | Compile read-path microbenchmark |
 | `gen_conn` | Compile loopback connection generator |
 | `all` | All of the above sequentially |
@@ -155,8 +155,8 @@ FreeBSD base system already provides: `cc` (clang), `make`, sanitizers, `strlcpy
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FREEBSD_HOST` | `root@192.168.122.41` | SSH target for the FreeBSD VM |
-| `FREEBSD_KMOD_DIR` | `/root/bsd-xtcp/kmod` | Remote directory for kmod source |
+| `FREEBSD_HOST` | `root@192.168.122.41` | SSH target for the FreeBSD VM (15.0: .41, 14.4: .85, 14.3: .27) |
+| `FREEBSD_KMOD_DIR` | `/root/tcpstats-reader/kmod` | Remote directory for kmod source |
 | `CC` | `cc` | Compiler (in `run-tests-freebsd.sh`) |
 | `BENCH_ITERS` | `1000000` | Benchmark iteration count |
 
@@ -177,12 +177,12 @@ nix run .#kmod-test-all        # all of the above
 ## File inventory
 
 ```
-kmod/tcp_stats_kld/
+kmod/tcpstats/
   Makefile                          Kernel module build (bsd.kmod.mk)
-  tcp_stats_kld.c                   Kernel module: char device, ioctl, profiles
-  tcp_stats_kld.h                   Shared header: ioctl commands, filter struct
-  tcp_stats_filter_parse.c          Dual-compile filter string parser
-  tcp_stats_filter_parse.h          Parser API: tsf_parse_filter_string()
+  tcp_statsdev.c                   Kernel module: char device, ioctl, profiles
+  tcp_statsdev.h                   Shared header: ioctl commands, filter struct
+  tcp_statsdev_filter.c          Dual-compile filter string parser
+  tcp_statsdev_filter.h          Parser API: tsf_parse_filter_string()
   test/
     test_filter_parse.c             78 unit tests (positive + negative + value verification)
     bench_filter_parse.c            Benchmark harness (11 workloads, configurable iterations)
@@ -203,42 +203,43 @@ nix/
 
 ## Verified FreeBSD versions
 
-All 15 test targets pass on both versions, including the 6 live kernel module integration tests (`live_all`).
+All 15 test targets pass on all three versions, including the 6 live kernel module integration tests (`live_all`).
 
 | Version | Arch | Kernel source | Offline tests | Live tests | Kmod build |
 |---------|------|---------------|---------------|------------|------------|
 | 14.3-RELEASE | amd64 | Fetched via `src.txz` | 9/9 PASS | 5/5 PASS | PASS |
+| 14.4-RELEASE | amd64 | Fetched via `src.txz` | 9/9 PASS | 5/5 PASS | PASS |
 | 15.0-RELEASE | amd64 | Pre-installed | 9/9 PASS | 5/5 PASS | PASS |
 
 ### Live test results (live_all)
 
-| Target | FreeBSD 14.3 | FreeBSD 15.0 | Notes |
-|--------|-------------|-------------|-------|
-| `live_smoke` | PASS | PASS | kmod load/read/sysctl/unload |
-| `live_bench` | PASS | PASS | 1K/10K/100K connections, ~3M rec/s at 10K |
-| `live_stats` | PASS | PASS | Invariant holds: visited == emitted + skipped |
-| `live_dtrace` | PASS | PASS | SDT probes register and fire at runtime (7 probes) |
-| `live_dos` | PASS | PASS | EMFILE, timeout (partial results), EINTR all verified |
+| Target | FreeBSD 14.3 | FreeBSD 14.4 | FreeBSD 15.0 | Notes |
+|--------|-------------|-------------|-------------|-------|
+| `live_smoke` | PASS | PASS | PASS | kmod load/read/sysctl/unload |
+| `live_bench` | PASS | PASS | PASS | 1K/10K/100K connections, ~3M rec/s at 10K |
+| `live_stats` | PASS | PASS | PASS | Invariant holds: visited == emitted + skipped |
+| `live_dtrace` | PASS | PASS | PASS | SDT probes register and fire at runtime (7 probes) |
+| `live_dos` | PASS | PASS | PASS | EMFILE, timeout (partial results), EINTR all verified |
 
 ### DTrace SDT probe fix
 
 DTrace SDT probes initially compiled but did not register at runtime. The root cause was that `KDTRACE_HOOKS` -- which gates the real SDT macro implementation in `sys/sys/sdt.h` -- is defined in the `GENERIC` kernel config but not in `DEFAULTS`. Out-of-tree `bsd.kmod.mk` builds generate `opt_global.h` only from `DEFAULTS`, so all `SDT_PROVIDER_DEFINE`/`SDT_PROBE_DEFINE*` calls silently expanded to no-ops.
 
-The fix adds `-DKDTRACE_HOOKS` automatically in the Makefile when `-DTCPSTATS_DTRACE` is detected in CFLAGS, plus a `#error` guard in `tcp_stats_kld.c` to catch future misconfigurations at compile time. This is safe because GENERIC kernels (the standard FreeBSD kernel) already have `KDTRACE_HOOKS` enabled; the define only controls whether `sdt.h` macros emit linker set entries.
+The fix adds `-DKDTRACE_HOOKS` automatically in the Makefile when `-DTCPSTATS_DTRACE` is detected in CFLAGS, plus a `#error` guard in `tcp_statsdev.c` to catch future misconfigurations at compile time. This is safe because GENERIC kernels (the standard FreeBSD kernel) already have `KDTRACE_HOOKS` enabled; the define only controls whether `sdt.h` macros emit linker set entries.
 
 **Changes made:**
 
 | File | Change |
 |------|--------|
-| `kmod/tcp_stats_kld/Makefile` | `.if !empty(CFLAGS:M*TCPSTATS_DTRACE*)` conditional auto-adds `-DKDTRACE_HOOKS` |
-| `kmod/tcp_stats_kld/tcp_stats_kld.c` | `#error` guard if `TCPSTATS_DTRACE` set without `KDTRACE_HOOKS` |
-| `kmod/tcp_stats_kld/test/run-tests-freebsd.sh` | `live_dtrace` now FAILs (not skips) if probes don't register |
+| `kmod/tcpstats/Makefile` | `.if !empty(CFLAGS:M*TCPSTATS_DTRACE*)` conditional auto-adds `-DKDTRACE_HOOKS` |
+| `kmod/tcpstats/tcp_statsdev.c` | `#error` guard if `TCPSTATS_DTRACE` set without `KDTRACE_HOOKS` |
+| `kmod/tcpstats/test/run-tests-freebsd.sh` | `live_dtrace` now FAILs (not skips) if probes don't register |
 
 **Verification (both FreeBSD 14.3 and 15.0):**
 
 1. Build with DTrace -- ELF sections present:
    ```
-   readelf -S tcp_stats_kld.ko | grep sdt
+   readelf -S tcpstats.ko | grep sdt
    [ 4] set_sdt_tracepoint_set    PROGBITS  ...  000240
    [ 8] set_sdt_providers_set     PROGBITS  ...  000008
    [10] set_sdt_probes_set        PROGBITS  ...  000038
@@ -249,13 +250,13 @@ The fix adds `-DKDTRACE_HOOKS` automatically in the Makefile when `-DTCPSTATS_DT
    ```
    dtrace -l -P tcpstats
       ID   PROVIDER            MODULE                          FUNCTION NAME
-   73670   tcpstats     tcp_stats_kld                              read entry
-   73671   tcpstats     tcp_stats_kld                              read done
-   73672   tcpstats     tcp_stats_kld                            filter skip
-   73673   tcpstats     tcp_stats_kld                            filter match
-   73674   tcpstats     tcp_stats_kld                              fill done
-   73675   tcpstats     tcp_stats_kld                           profile create
-   73676   tcpstats     tcp_stats_kld                           profile destroy
+   73670   tcpstats     tcpstats                              read entry
+   73671   tcpstats     tcpstats                              read done
+   73672   tcpstats     tcpstats                            filter skip
+   73673   tcpstats     tcpstats                            filter match
+   73674   tcpstats     tcpstats                              fill done
+   73675   tcpstats     tcpstats                           profile create
+   73676   tcpstats     tcpstats                           profile destroy
    ```
 
 3. Probes fire under load (`live_dtrace` test, 100 connections, 2 reads):
@@ -267,7 +268,7 @@ The fix adds `-DKDTRACE_HOOKS` automatically in the Makefile when `-DTCPSTATS_DT
 
 4. Production build (no `-DTCPSTATS_DTRACE`) -- zero SDT sections:
    ```
-   readelf -S tcp_stats_kld.ko | grep sdt    # (empty output)
+   readelf -S tcpstats.ko | grep sdt    # (empty output)
    ```
 
 ## Performance & Security Hardening
@@ -357,12 +358,12 @@ Concurrent reader scaling (10K connections, 5 reads each):
 
 - **FreeBSD platform parser in Rust** -- implement `src/platform/freebsd.rs` to parse `net.inet.tcp.pcblist` sysctl output, matching the macOS parser architecture
 - **kern.file PID join** -- FreeBSD pcblist doesn't include PID; join with `kern.file` sysctl to attribute sockets to processes
-- **tcp_stats_kld enrichment** -- use the kmod's per-socket data to supplement sysctl fields (congestion window, RTT, retransmits)
+- **tcpstats enrichment** -- use the kmod's per-socket data to supplement sysctl fields (congestion window, RTT, retransmits)
 - **CI pipeline** -- automate `nix run .#kmod-test-freebsd` in CI (requires FreeBSD VM runner or bhyve-in-CI setup)
 
 ### Long-term
 
 - **ARM64 FreeBSD** -- test on aarch64 FreeBSD (Raspberry Pi, AWS Graviton)
-- **Kernel module packaging** -- FreeBSD port/package for `tcp_stats_kld` so it can be installed via `pkg install`
+- **Kernel module packaging** -- FreeBSD port/package for `tcpstats` so it can be installed via `pkg install`
 - ~~**DTrace + stats profiling**~~ -- DONE: `live_dtrace` and `live_stats` targets
 - ~~**Live socket filtering benchmarks**~~ -- DONE: `live_bench` target (1K/10K/100K connections)

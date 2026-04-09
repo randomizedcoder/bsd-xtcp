@@ -1,5 +1,5 @@
 /*
- * bench_read_tcpstats.c -- Read-path microbenchmark for tcp_stats_kld.
+ * bench_read_tcpstats.c -- Read-path microbenchmark for tcpstats.
  *
  * Measures read() throughput and latency against /dev/tcpstats with
  * various filter configurations, buffer sizes, and concurrency levels.
@@ -8,8 +8,8 @@
  *   cc -O2 -lpthread -o bench_read_tcpstats bench_read_tcpstats.c -I..
  *
  * Run:
- *   # Ensure tcp_stats_kld is loaded and connections exist:
- *   #   kldload ./tcp_stats_kld.ko
+ *   # Ensure tcpstats is loaded and connections exist:
+ *   #   kldload ./tcpstats.ko
  *   #   ./gen_connections 1000
  *   ./bench_read_tcpstats [iterations]
  *
@@ -31,8 +31,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../tcp_stats_kld.h"
-#include "../tcp_stats_filter_parse.h"
+#include "../tcp_statsdev.h"
+#include "../tcp_statsdev_filter.h"
 
 #define DEVPATH	      "/dev/tcpstats"
 #define DEFAULT_ITERS 10
@@ -233,12 +233,12 @@ main(int argc, char *argv[])
 	fd = open(DEVPATH, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "cannot open %s: %s\n"
-				"  (is tcp_stats_kld loaded?)\n",
+				"  (is tcpstats loaded?)\n",
 			DEVPATH, strerror(errno));
 		return (1);
 	}
 	if (ioctl(fd, TCPSTATS_VERSION_CMD, &ver) == 0) {
-		printf("tcp_stats_kld v%u, record_size=%u, "
+		printf("tcpstats v%u, record_size=%u, "
 		       "connection_hint=%u\n",
 		       ver.protocol_version, ver.record_size,
 		       ver.record_count_hint);

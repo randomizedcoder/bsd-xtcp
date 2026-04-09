@@ -26,16 +26,16 @@ fmt:
 
 check: clippy fmt test
 
-# Cross-compilation: bsd-xtcp (Linux host only)
+# Cross-compilation: tcpstats-reader (Linux host only)
 cross-x86_64-darwin:
 	nix build .#cross-x86_64-darwin --out-link result-cross-x86_64-darwin
-	@echo "Output: result-cross-x86_64-darwin/bin/bsd-xtcp"
-	@file result-cross-x86_64-darwin/bin/bsd-xtcp
+	@echo "Output: result-cross-x86_64-darwin/bin/tcpstats-reader"
+	@file result-cross-x86_64-darwin/bin/tcpstats-reader
 
 cross-aarch64-darwin:
 	nix build .#cross-aarch64-darwin --out-link result-cross-aarch64-darwin
-	@echo "Output: result-cross-aarch64-darwin/bin/bsd-xtcp"
-	@file result-cross-aarch64-darwin/bin/bsd-xtcp
+	@echo "Output: result-cross-aarch64-darwin/bin/tcpstats-reader"
+	@file result-cross-aarch64-darwin/bin/tcpstats-reader
 
 cross-all: cross-x86_64-darwin cross-aarch64-darwin
 	@echo "All cross targets built."
@@ -86,6 +86,9 @@ analyze: kmod-analysis-all
 
 freebsd150:
 	ssh root@192.168.122.41
+
+freebsd144:
+	ssh root@192.168.122.85
 
 freebsd143:
 	ssh root@192.168.122.27

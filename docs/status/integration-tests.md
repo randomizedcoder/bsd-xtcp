@@ -26,7 +26,7 @@ Run on-VM without loading the kernel module. Validate that C test programs and t
 | `ubsan` | UndefinedBehaviorSanitizer |
 | `bench` | Filter parser benchmark (1M iterations, 11 workloads) |
 | `callgrind` | Callgrind CPU profiling |
-| `kmod` | Build kernel module (`tcp_stats_kld.ko`) with `-Werror` |
+| `kmod` | Build kernel module (`tcpstats.ko`) with `-Werror` |
 | `bench_read` | Compile read-path microbenchmark |
 | `gen_conn` | Compile loopback connection generator |
 
@@ -71,7 +71,7 @@ Each test creates real TCP connections on loopback, applies a filter via ioctl, 
 ### Prerequisites
 
 - FreeBSD VMs running and reachable via SSH (passwordless root access)
-- Default hosts: `root@192.168.122.41` (FreeBSD 15.0), `root@192.168.122.27` (FreeBSD 14.3)
+- Default hosts: `root@192.168.122.41` (FreeBSD 15.0), `root@192.168.122.85` (FreeBSD 14.4), `root@192.168.122.27` (FreeBSD 14.3)
 - Nix with flakes enabled on the Linux host
 
 ### From the Linux host (via Nix)
@@ -105,7 +105,7 @@ FREEBSD_HOST=root@10.0.0.5 nix run .#integration-test-freebsd150
 
 ```sh
 # Build the binary
-cd /root/bsd-xtcp && cargo build --release --workspace
+cd /root/tcpstats-reader && cargo build --release --workspace
 
 # Environment setup (idempotent)
 ./target/release/kmod-integration pkg_setup
@@ -115,20 +115,20 @@ cd /root/bsd-xtcp && cargo build --release --workspace
 ./target/release/kmod-integration unit
 
 # Load kmod, then run live targets
-cd kmod/tcp_stats_kld && make clean all
-kldload ./tcp_stats_kld.ko
+cd kmod/tcpstats && make clean all
+kldload ./tcpstats.ko
 sysctl dev.tcpstats.max_open_fds=64
 
 # Live targets
-./target/release/kmod-integration live_smoke --kmod-src kmod/tcp_stats_kld
+./target/release/kmod-integration live_smoke --kmod-src kmod/tcpstats
 ./target/release/kmod-integration live_integration --category all \
-    --tcp-echo ./target/release/tcp-echo --kmod-src kmod/tcp_stats_kld
+    --tcp-echo ./target/release/tcp-echo --kmod-src kmod/tcpstats
 ./target/release/kmod-integration live_all \
-    --tcp-echo ./target/release/tcp-echo --kmod-src kmod/tcp_stats_kld \
-    --exporter ./target/release/tcp-stats-kld-exporter
+    --tcp-echo ./target/release/tcp-echo --kmod-src kmod/tcpstats \
+    --exporter ./target/release/tcpstats-exporter
 
 # Unload when done
-kldunload tcp_stats_kld
+kldunload tcpstats
 ```
 
 ### Local C parser tests (Linux host, no VM needed)
@@ -149,7 +149,7 @@ nix run .#kmod-test-all         # all of the above
 |----------|---------|-------------|
 | `INTEGRATION_TARGET` | `live_integration` | Target to run (see targets table above) |
 | `FREEBSD_HOST` | per-VM from `nix/constants.nix` | SSH target override |
-| `FREEBSD_DIR` | `/root/bsd-xtcp` | Remote project directory |
+| `FREEBSD_DIR` | `/root/tcpstats-reader` | Remote project directory |
 
 ## CLI flags (`kmod-integration`)
 
@@ -157,9 +157,9 @@ nix run .#kmod-test-all         # all of the above
 |------|---------|-------------|
 | `--tcp-echo PATH` | `tcp-echo` | Path to tcp-echo binary |
 | `--read-tcpstats PATH` | `read_tcpstats` | Path to read_tcpstats binary |
-| `--kmod-src PATH` | `kmod/tcp_stats_kld` | Path to kmod source directory |
+| `--kmod-src PATH` | `kmod/tcpstats` | Path to kmod source directory |
 | `--cc PATH` | `cc` | C compiler |
-| `--exporter PATH` | `tcp-stats-kld-exporter` | Path to tcp-stats-kld-exporter binary (optional, used by `live_all`) |
+| `--exporter PATH` | `tcpstats-exporter` | Path to tcpstats-exporter binary (optional, used by `live_all`) |
 | `--category CAT` | `all` | Filter category for `live_integration` (e.g. `A`, `A,B,D`) |
 
 ## What the Nix integration script does
@@ -217,7 +217,7 @@ nix/
 
 ## Exporter integration
 
-The `tcp-stats-kld-exporter` Prometheus exporter is optionally integrated into `live_all` runs. The harness spawns it after kmod reload with `TCPSTATS_MAX_QUERY_RATE=20` for rapid test scraping, then passes an `ExporterHandle` to live targets.
+The `tcpstats-exporter` Prometheus exporter is optionally integrated into `live_all` runs. The harness spawns it after kmod reload with `TCPSTATS_MAX_QUERY_RATE=20` for rapid test scraping, then passes an `ExporterHandle` to live targets.
 
 **Behaviour by target:**
 

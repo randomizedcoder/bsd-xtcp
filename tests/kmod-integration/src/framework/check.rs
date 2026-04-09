@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 
 use super::process::run_cmd;
 
@@ -26,11 +26,7 @@ pub fn read_count(read_tcpstats: &str, filter: &str) -> Result<u64> {
 
     // Output may contain multiple lines; the count is the last numeric value.
     // Typical output: just a number like "21"
-    let count_str = output
-        .lines()
-        .last()
-        .unwrap_or("")
-        .trim();
+    let count_str = output.lines().last().unwrap_or("").trim();
 
     count_str
         .parse::<u64>()
@@ -55,9 +51,7 @@ pub fn check_count(
     };
 
     if !pass {
-        bail!(
-            "{test_id}: FAIL — filter={filter:?} expected {expected} ({op:?}), got {actual}"
-        );
+        bail!("{test_id}: FAIL — filter={filter:?} expected {expected} ({op:?}), got {actual}");
     }
 
     Ok(())

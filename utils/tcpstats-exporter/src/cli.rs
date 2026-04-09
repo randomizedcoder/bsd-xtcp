@@ -53,9 +53,9 @@ pub fn parse_args() -> Result<Config, String> {
 
 fn print_usage() {
     eprintln!(
-        "Usage: tcp-stats-kld-exporter [OPTIONS]
+        "Usage: tcpstats-exporter [OPTIONS]
 
-Prometheus exporter for bsd-xtcp tcp_stats_kld kernel module statistics.
+Prometheus exporter for tcpstats kernel module statistics.
 
 Serves metrics at http://<listen>/metrics in Prometheus text exposition format.
 

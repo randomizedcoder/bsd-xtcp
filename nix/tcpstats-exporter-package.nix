@@ -1,15 +1,15 @@
 { pkgs, rustPlatform, src, constants }:
 
 rustPlatform.buildRustPackage {
-  pname = "tcp-stats-kld-exporter";
+  pname = "tcpstats-exporter";
   version = constants.version;
   inherit src;
 
   cargoLock.lockFile = src + "/Cargo.lock";
 
   # Only build the exporter binary from the workspace.
-  cargoBuildFlags = [ "-p" "tcp-stats-kld-exporter" ];
-  cargoTestFlags = [ "-p" "tcp-stats-kld-exporter" ];
+  cargoBuildFlags = [ "-p" "tcpstats-exporter" ];
+  cargoTestFlags = [ "-p" "tcpstats-exporter" ];
 
   nativeBuildInputs = with pkgs; [
     # Protobuf is needed because the workspace Cargo.lock includes
@@ -28,7 +28,7 @@ rustPlatform.buildRustPackage {
   doCheck = true;
 
   meta = with pkgs.lib; {
-    description = "Prometheus exporter for tcp_stats_kld kernel module stats";
+    description = "Prometheus exporter for tcpstats kernel module stats";
     license = licenses.mit;
   };
 }

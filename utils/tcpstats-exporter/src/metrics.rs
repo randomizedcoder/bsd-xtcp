@@ -12,7 +12,11 @@ pub fn render(snapshot: &Snapshot, http_requests: u64, latency_secs: f64) -> Str
 
     out.push_str("# HELP tcpstats_exporter_http_requests_total Total HTTP requests handled\n");
     out.push_str("# TYPE tcpstats_exporter_http_requests_total counter\n");
-    push_metric_u64(&mut out, "tcpstats_exporter_http_requests_total", http_requests);
+    push_metric_u64(
+        &mut out,
+        "tcpstats_exporter_http_requests_total",
+        http_requests,
+    );
     out.push('\n');
 
     out.push_str(
@@ -139,7 +143,7 @@ fn push_counter_block(out: &mut String, name: &str, help: &str, val: u64) {
 mod tests {
     use super::*;
     use crate::collector::Snapshot;
-    use bsd_xtcp::sysctl::TcpSysStats;
+    use tcpstats_reader::sysctl::TcpSysStats;
 
     #[test]
     fn test_render_contains_expected_metrics() {

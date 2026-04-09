@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package bsd_xtcp;
+package tcpstats_reader;
 
 // ─── Enums ───────────────────────────────────────────────────────────
 
@@ -84,7 +84,7 @@ message CollectionMetadata {
   // Consumers use this to detect gaps (missed collections).
   uint64 batch_sequence = 10;
 
-  // Tool version string (e.g. "bsd-xtcp 0.1.0").
+  // Tool version string (e.g. "tcpstats-reader 0.1.0").
   string tool_version = 11;
 }
 

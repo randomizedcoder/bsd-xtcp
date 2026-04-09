@@ -22,7 +22,7 @@ fn main() {
     let min_interval_secs = 1.0 / config.max_query_rate;
 
     eprintln!(
-        "tcp-stats-kld-exporter listening on http://{}/metrics",
+        "tcpstats-exporter listening on http://{}/metrics",
         config.listen_addr
     );
     eprintln!(
@@ -112,6 +112,6 @@ fn handle_metrics() -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
 }
 
 fn handle_root() -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
-    let body = "tcp-stats-kld-exporter\nMetrics at /metrics\n";
+    let body = "tcpstats-exporter\nMetrics at /metrics\n";
     tiny_http::Response::from_data(body.as_bytes().to_vec()).with_status_code(200)
 }

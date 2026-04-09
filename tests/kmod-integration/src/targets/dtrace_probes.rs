@@ -1,12 +1,12 @@
 use std::path::Path;
 use std::time::Duration;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::framework::check::read_count;
-use crate::framework::process::{ProcessGroup, run_cmd, run_cmd_with_timeout};
+use crate::framework::process::{run_cmd, run_cmd_with_timeout, ProcessGroup};
 
-/// All 7 SDT probes defined in tcp_stats_kld.c (DTrace listing format).
+/// All 7 SDT probes defined in tcp_statsdev.c (DTrace listing format).
 const EXPECTED_PROBES: &[&str] = &[
     "read:entry",
     "read:done",
@@ -145,9 +145,7 @@ fn phase_read_latency(read_tcpstats: &str) -> Result<()> {
     if output.contains('|') || output.contains("value") {
         println!("    read latency histogram captured");
     } else {
-        bail!(
-            "expected quantize histogram in read_latency.d output, got:\n{output}"
-        );
+        bail!("expected quantize histogram in read_latency.d output, got:\n{output}");
     }
 
     Ok(())
@@ -172,9 +170,11 @@ fn phase_filter_skip_reasons(read_tcpstats: &str) -> Result<()> {
         .map_err(|_| anyhow::anyhow!("DTrace thread panicked"))??;
 
     // The output should contain at least one reason category name
-    let has_reason = ["gencnt", "cred", "ipver", "state", "port", "addr", "timeout"]
-        .iter()
-        .any(|r| output.contains(r));
+    let has_reason = [
+        "gencnt", "cred", "ipver", "state", "port", "addr", "timeout",
+    ]
+    .iter()
+    .any(|r| output.contains(r));
 
     if has_reason {
         println!("    filter skip reasons captured");
@@ -211,12 +211,12 @@ fn parse_dtrace_aggregation(output: &str, name: &str) -> Option<u64> {
     None
 }
 
-/// Locate a DTrace script in kmod/tcp_stats_kld/dtrace/.
+/// Locate a DTrace script in kmod/tcpstats/dtrace/.
 /// Checks both relative (for in-tree runs) and absolute paths.
 fn find_dtrace_script(name: &str) -> Result<String> {
     let candidates = [
-        format!("kmod/tcp_stats_kld/dtrace/{name}"),
-        format!("/usr/local/share/tcp_stats_kld/dtrace/{name}"),
+        format!("kmod/tcpstats/dtrace/{name}"),
+        format!("/usr/local/share/tcpstats/dtrace/{name}"),
     ];
 
     for path in &candidates {

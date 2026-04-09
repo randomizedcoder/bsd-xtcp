@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::framework::process::run_cmd;
 use crate::framework::system::{kmod_build, kmod_is_loaded, kmod_load, kmod_unload, verify_device};

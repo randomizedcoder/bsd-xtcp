@@ -1,10 +1,10 @@
-# bsd-xtcp
+# tcpstats-reader
 
 System-wide TCP socket statistics exporter for FreeBSD and macOS.
 
 ## Overview
 
-bsd-xtcp polls all TCP connections on the host and exports per-socket metrics — state, congestion window, RTT, retransmits, buffer utilization, process attribution — as structured data. On FreeBSD, a kernel module (`tcp_stats_kld`) exposes `/dev/tcpstats` with full `tcp_info`-equivalent data for every socket in a single kernel pass. On macOS, the `pcblist_n` sysctl provides comparable coverage without a kernel extension.
+tcpstats-reader polls all TCP connections on the host and exports per-socket metrics — state, congestion window, RTT, retransmits, buffer utilization, process attribution — as structured data. On FreeBSD, a kernel module (`tcpstats`) exposes `/dev/tcpstats` with full `tcp_info`-equivalent data for every socket in a single kernel pass. On macOS, the `pcblist_n` sysctl provides comparable coverage without a kernel extension.
 
 This is the BSD counterpart to [xtcp](https://github.com/randomizedcoder/xtcp) and [xtcp2](https://github.com/randomizedcoder/xtcp2), which use Linux Netlink.
 
@@ -17,7 +17,7 @@ Key properties:
 - **Rust implementation:** synchronous collection loop, protobuf via prost, Nix-based build system
 - **CI-friendly:** pure parsing functions compile and test on Linux; sysctl/kmod calls are cfg-gated
 
-## FreeBSD Kernel Module: tcp_stats_kld
+## FreeBSD Kernel Module: tcpstats
 
 ### What it does
 
@@ -181,7 +181,7 @@ Nix-driven workflow: rsync source to FreeBSD VM, build on VM, run tests, fetch r
 
 ## Rust Client
 
-The `bsd-xtcp` binary reads kernel data and outputs JSON Lines with 78+ fields per socket record.
+The `tcpstats-reader` binary reads kernel data and outputs JSON Lines with 78+ fields per socket record.
 
 **FreeBSD:** reads `/dev/tcpstats` for per-socket TCP stats, joins with `kern.file` sysctl for process attribution (PID, FD, command), collects system-wide counters from `net.inet.tcp.stats`.
 
@@ -195,7 +195,7 @@ The `bsd-xtcp` binary reads kernel data and outputs JSON Lines with 78+ fields p
 
 ```sh
 nix build .
-./result/bin/bsd-xtcp --count 1 --pretty
+./result/bin/tcpstats-reader --count 1 --pretty
 ```
 
 ### Cross-compile for macOS from Linux
@@ -209,8 +209,8 @@ make cross-x86_64-darwin           # Intel Mac
 make cross-all                     # both targets
 
 # Option 2: nix run (auto-names output directories)
-nix run .#cross-aarch64-darwin     # -> result-cross-aarch64-darwin/bin/bsd-xtcp
-nix run .#cross-x86_64-darwin      # -> result-cross-x86_64-darwin/bin/bsd-xtcp
+nix run .#cross-aarch64-darwin     # -> result-cross-aarch64-darwin/bin/tcpstats-reader
+nix run .#cross-x86_64-darwin      # -> result-cross-x86_64-darwin/bin/tcpstats-reader
 nix run .#build-cross-all          # builds both with separate output dirs
 
 # Option 3: nix build (manual output link)
@@ -221,8 +221,8 @@ nix build .#cross-all              # both binaries in result/bin/ named by targe
 ### Deploy to a Mac
 
 ```sh
-scp result-cross-aarch64-darwin/bin/bsd-xtcp user@mac:~/
-ssh user@mac '~/bsd-xtcp --count 1 --pretty'
+scp result-cross-aarch64-darwin/bin/tcpstats-reader user@mac:~/
+ssh user@mac '~/tcpstats-reader --count 1 --pretty'
 ```
 
 ### FreeBSD integration tests
@@ -236,7 +236,7 @@ nix run .#integration-test-freebsd143    # FreeBSD 14.3 VM
 
 | Target | Description |
 |--------|-------------|
-| `default` / `bsd-xtcp` | Native build for current platform |
+| `default` / `tcpstats-reader` | Native build for current platform |
 | `proto` | Standalone protobuf schema validation |
 | `cross-x86_64-darwin` | Cross-compile for Intel Mac (Linux host only) |
 | `cross-aarch64-darwin` | Cross-compile for Apple Silicon M1/M2/M3/M4 (Linux host only) |
@@ -275,19 +275,19 @@ cargo run
 | 5 - JSON output | Done | `JsonSink` with `OutputSink` trait, JSON Lines + pretty-print |
 | 6 - CLI + collection loop | Done | Hand-rolled `--interval`/`--count`/`--pretty` args, synchronous loop |
 | 7-10 | Not started | Delta tracking, getsockopt enrichment, binary output, system summary enrichment |
-| 11 - FreeBSD kernel module | Done | `tcp_stats_kld` with filters, DTrace, DoS protections, 16 test targets |
+| 11 - FreeBSD kernel module | Done | `tcpstats` with filters, DTrace, DoS protections, 16 test targets |
 | 12 - FreeBSD Rust client | Done | KLD reader, `kern.file` join, 22 new fields, 24 tests |
 | 13 - Integration test harness | Done | Rust-based `kmod-integration` replacing shell scripts, 178 filter tests |
 | 14 - Soak testing | Done | 12h @ 1K connections, 1h @ 10K connections, both FreeBSD versions |
-| 15 - Prometheus exporter | Done | `tcp-stats-kld-exporter` with rate/concurrency limiting |
+| 15 - Prometheus exporter | Done | `tcpstats-exporter` with rate/concurrency limiting |
 
 Platform status documents:
 
 - [docs/status/macos.md](docs/status/macos.md) — macOS pcblist_n parser, cross-compilation, phases 1–6
-- [docs/status/freebsd.md](docs/status/freebsd.md) — FreeBSD tcp_stats_kld kernel module, filter parser, test suite
+- [docs/status/freebsd.md](docs/status/freebsd.md) — FreeBSD tcpstats kernel module, filter parser, test suite
 - [docs/status/integration-tests.md](docs/status/integration-tests.md) — Rust integration test harness, 178 filter tests, 16 targets
 - [docs/status/freebsd-client.md](docs/status/freebsd-client.md) — FreeBSD Rust client, kern.file join, 22 new fields
-- [docs/status/tcp-stats-kld-exporter.md](docs/status/tcp-stats-kld-exporter.md) — Prometheus exporter for tcp_stats_kld
+- [docs/status/tcpstats-exporter.md](docs/status/tcpstats-exporter.md) — Prometheus exporter for tcpstats
 
 ## Design Documents
 
@@ -297,7 +297,7 @@ Platform status documents:
 | 2 | [Tool Architecture](docs/design/02-architecture.md) | Tiered polling architecture, data flow, record schemas, consistency model via generation counters |
 | 3 | [Implementation Plan](docs/design/03-implementation.md) | Output formats (JSON Lines, CSV, protobuf), Rust module structure, six implementation phases |
 | 4 | [macOS Portability](docs/design/04-macos-portability.md) | macOS differences: `TCP_CONNECTION_INFO`, `pcblist_n` tagged records, built-in RTT + PID attribution |
-| 5 | [Kernel Module Design](docs/design/05-kernel-module.md) | `tcp_stats_kld` character device: `/dev/tcpstats`, 320-byte records, `cr_canseeinpcb()`, `uiomove()` streaming |
+| 5 | [Kernel Module Design](docs/design/05-kernel-module.md) | `tcpstats` character device: `/dev/tcpstats`, 320-byte records, `cr_canseeinpcb()`, `uiomove()` streaming |
 | 6 | [Field Comparison](docs/design/06-field-comparison.md) | Performance budget (< 1% CPU, < 10 MB RSS), field coverage matrix across Linux/FreeBSD/macOS, open questions |
 | 7 | [Nix Build System](docs/design/07-nix-build-system.md) | Nix flake, `rustPlatform.buildRustPackage`, cross-compilation, security analysis toolkit |
 | 8 | [Protobuf Schema](docs/design/08-protobuf-schema.md) | Unified `TcpSocketRecord` (78 fields), `BatchMessage`, configurable `interval_ms` replacing fixed tiers |
@@ -307,12 +307,13 @@ Platform status documents:
 ## Project Structure
 
 ```
-bsd-xtcp/
+tcpstats-reader/
 ├── src/                    # Root crate — FreeBSD/macOS TCP stats reader library
 ├── proto/                  # Protobuf schema (tcp_stats.proto)
-├── kmod/tcp_stats_kld/     # FreeBSD kernel module (C)
+├── kmod/tcpstats/          # FreeBSD kernel module (C)
 ├── tests/kmod-integration/ # Rust integration test harness
 ├── utils/tcp-echo/         # TCP echo server/client for testing
+├── utils/tcpstats-exporter/ # Prometheus exporter
 ├── nix/                    # Nix packaging, cross-compilation, VM deployment
 ├── docs/
 │   ├── design/             # Design specifications (10 sections)

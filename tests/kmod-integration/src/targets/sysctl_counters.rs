@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::framework::check::read_count;
 use crate::framework::exporter::ExporterHandle;

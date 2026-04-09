@@ -1,5 +1,5 @@
 ---
-# FreeBSD Kernel Normal Form (KNF) style for tcp_stats_kld.
+# FreeBSD Kernel Normal Form (KNF) style for tcpstats.
 # Enforced via: clang-format --dry-run -Werror
 Language: Cpp
 BasedOnStyle: LLVM

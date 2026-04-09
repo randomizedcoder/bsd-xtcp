@@ -15,10 +15,11 @@ nix develop --command cargo build --release -p kmod-integration
 
 ## Project structure
 
-- Root crate (`bsd-xtcp`) — FreeBSD TCP stats reader library
+- Root crate (`tcpstats-reader`) — FreeBSD TCP stats reader library
 - `utils/tcp-echo/` — TCP echo server/client for integration testing
+- `utils/tcpstats-exporter/` — Prometheus exporter for tcpstats kernel module
 - `tests/kmod-integration/` — Rust-based integration test harness (replaces shell scripts)
-- `kmod/tcp_stats_kld/` — FreeBSD kernel module source (C)
+- `kmod/tcpstats/` — FreeBSD kernel module source (C)
 - `nix/` — Nix packaging, cross-compilation, VM deployment
 
 ## Key commands

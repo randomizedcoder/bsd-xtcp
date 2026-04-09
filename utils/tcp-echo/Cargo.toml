@@ -3,7 +3,7 @@ name = "tcp-echo"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.85"
-description = "TCP echo server+client for testing bsd-xtcp socket stats collection"
+description = "TCP echo server+client for testing tcpstats-reader socket stats collection"
 
 [dependencies]
 anyhow = "1"

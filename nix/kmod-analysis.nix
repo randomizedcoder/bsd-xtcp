@@ -1,8 +1,8 @@
 { pkgs, src }:
 
 let
-  kmodSrc = "${src}/kmod/tcp_stats_kld";
-  parserSrcs = "${kmodSrc}/tcp_stats_filter_parse.c";
+  kmodSrc = "${src}/kmod/tcpstats";
+  parserSrcs = "${kmodSrc}/tcp_statsdev_filter.c";
   parserHdr = "-I${kmodSrc}";
   testSrc = "${kmodSrc}/test/test_filter_parse.c";
   benchSrc = "${kmodSrc}/test/bench_filter_parse.c";
@@ -152,7 +152,7 @@ let
 
       # Tier C: kernel-only sources (header analysis only, skip compilation)
       echo "--- Tier C: kernel-only sources (header scan) ---"
-      for f in ${kmodSrc}/tcp_stats_kld.c ${kmodSrc}/tcp_stats_kld.h; do
+      for f in ${kmodSrc}/tcp_statsdev.c ${kmodSrc}/tcp_statsdev.h; do
         if [ -f "$f" ]; then
           echo "  checking $f (source scan, may have include errors)"
           clang-tidy "$f" \

@@ -44,8 +44,7 @@ impl<'a> CompileConfig<'a> {
         args.push(&include);
         args.extend_from_slice(extra_args);
 
-        run_cmd(self.cc, &args)
-            .with_context(|| format!("compile {output}"))?;
+        run_cmd(self.cc, &args).with_context(|| format!("compile {output}"))?;
 
         Ok(out_path)
     }

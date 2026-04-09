@@ -12,7 +12,7 @@ let
   # 5. Run and verify output contains FreeBSD markers
   mkFreebsdDeployScript = name: vm: ''
     VM_HOST="''${FREEBSD_HOST:-${vm.host}}"
-    VM_DIR="''${FREEBSD_DIR:-/root/bsd-xtcp}"
+    VM_DIR="''${FREEBSD_DIR:-/root/tcpstats-reader}"
 
     echo ""
     echo "============================================="
@@ -46,10 +46,10 @@ let
 
     # Build and load KLD
     echo "--- ${name}: building KLD ---"
-    ssh "$VM_HOST" "cd $VM_DIR/kmod/tcp_stats_kld && make clean all"
+    ssh "$VM_HOST" "cd $VM_DIR/kmod/tcpstats && make clean all"
 
     echo "--- ${name}: loading KLD ---"
-    ssh "$VM_HOST" "kldstat -q -n tcp_stats_kld && kldunload tcp_stats_kld; kldload $VM_DIR/kmod/tcp_stats_kld/tcp_stats_kld.ko"
+    ssh "$VM_HOST" "kldstat -q -n tcpstats && kldunload tcpstats; kldload $VM_DIR/kmod/tcpstats/tcpstats.ko"
 
     # Create a background TCP connection so the client has sockets to report
     echo "--- ${name}: creating test TCP connection ---"
@@ -58,8 +58,8 @@ let
     ssh "$VM_HOST" 'sleep 0.5'
 
     # Run and capture output
-    echo "--- ${name}: running bsd-xtcp ---"
-    OUTPUT=$(ssh "$VM_HOST" "$VM_DIR/target/release/bsd-xtcp --count 1 --pretty" 2>&1) || true
+    echo "--- ${name}: running tcpstats-reader ---"
+    OUTPUT=$(ssh "$VM_HOST" "$VM_DIR/target/release/tcpstats-reader --count 1 --pretty" 2>&1) || true
     echo "$OUTPUT"
 
     # Clean up background nc processes
@@ -102,7 +102,7 @@ let
   # Per-VM packages
   perVmPackages = builtins.mapAttrs (name: vm:
     pkgs.writeShellApplication {
-      name = "bsd-xtcp-${name}";
+      name = "tcpstats-reader-${name}";
       runtimeInputs = [ pkgs.rsync pkgs.openssh ];
       excludeShellChecks = [ "SC2029" ];
       text = mkFreebsdDeployScript name vm;
@@ -110,8 +110,8 @@ let
   ) constants.freebsdVMs;
 
   # Combined package that iterates all VMs sequentially
-  bsd-xtcp-freebsd = pkgs.writeShellApplication {
-    name = "bsd-xtcp-freebsd";
+  tcpstatsReaderFreebsd = pkgs.writeShellApplication {
+    name = "tcpstats-reader-freebsd";
     runtimeInputs = [ pkgs.rsync pkgs.openssh ];
     excludeShellChecks = [ "SC2029" ];
     text = let
@@ -123,7 +123,7 @@ let
       FAIL_COUNT=0
 
       echo "========================================="
-      echo "  bsd-xtcp-freebsd: testing all VMs"
+      echo "  tcpstats-reader-freebsd: testing all VMs"
       echo "========================================="
 
     '' + builtins.concatStringsSep "\n" (map (script: ''
@@ -136,7 +136,7 @@ let
 
       echo ""
       echo "========================================="
-      echo "  bsd-xtcp-freebsd: $PASS_COUNT passed, $FAIL_COUNT failed"
+      echo "  tcpstats-reader-freebsd: $PASS_COUNT passed, $FAIL_COUNT failed"
       echo "========================================="
 
       if [ "$FAIL_COUNT" -gt 0 ]; then
@@ -145,12 +145,12 @@ let
     '';
   };
 
-  # Rename per-VM packages to bsd-xtcp-<vmname>
+  # Rename per-VM packages to tcpstats-reader-<vmname>
   perVmExports = pkgs.lib.mapAttrs' (name: pkg:
-    { name = "bsd-xtcp-${name}"; value = pkg; }
+    { name = "tcpstats-reader-${name}"; value = pkg; }
   ) perVmPackages;
 
 in
 {
-  inherit bsd-xtcp-freebsd;
+  "tcpstats-reader-freebsd" = tcpstatsReaderFreebsd;
 } // perVmExports

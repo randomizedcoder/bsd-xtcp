@@ -69,7 +69,7 @@ This table documents the gap between the FreeBSD Developer Edition and the full 
 
 **FreeBSD without kernel module:** `xtcpcb` sysctl provides ~20 useful fields but no RTT. Requires separate `kern.file` join for PID mapping.
 
-**FreeBSD with `tcp_stats_kld` ([Section 11](05-kernel-module.md)):** ~35 fields in a single kernel pass — RTT, RTO, rttvar, rttmin, window scale, sequence numbers, SACK state, TLP counters. Still needs `kern.file` for PID mapping.
+**FreeBSD with `tcpstats` ([Section 11](05-kernel-module.md)):** ~35 fields in a single kernel pass — RTT, RTO, rttvar, rttmin, window scale, sequence numbers, SACK state, TLP counters. Still needs `kern.file` for PID mapping.
 
 **macOS `pcblist_n` sysctl (no kernel module):** ~25 fields including RTT (`t_srtt`), RTT variance, sequences, window scale, duplicate ACKs, and PID (`so_last_pid`) — all from a single sysctl. Supplemented by `getsockopt(TCP_CONNECTION_INFO)` for per-connection byte/packet counters, current RTT (ms), TFO state, loss recovery, and reorder detection on owned sockets.
 

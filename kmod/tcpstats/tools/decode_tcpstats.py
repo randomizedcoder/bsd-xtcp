@@ -20,7 +20,7 @@ STATES = {
     8: "LAST_ACK", 9: "FIN_WAIT_2", 10: "TIME_WAIT",
 }
 
-# Packed struct offsets (see tcp_stats_kld.h)
+# Packed struct offsets (see tcp_statsdev.h)
 OFF_VERSION     = 0
 OFF_LEN         = 4
 OFF_FLAGS       = 8

@@ -72,7 +72,7 @@ impl Config {
 
 fn print_usage() {
     eprintln!(
-        "Usage: bsd-xtcp [OPTIONS]
+        "Usage: tcpstats-reader [OPTIONS]
 
 Collect TCP socket statistics from the kernel and output JSON Lines to stdout.
 

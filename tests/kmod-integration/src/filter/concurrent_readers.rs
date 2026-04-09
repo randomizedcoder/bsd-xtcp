@@ -5,7 +5,11 @@ use crate::framework::check::read_count;
 use crate::framework::process::ProcessGroup;
 
 /// Category H: Concurrent Readers
-pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> Vec<libtest_mimic::Trial> {
+pub fn tests(
+    tcp_echo: &str,
+    read_tcpstats: &str,
+    output_dir: Option<&Path>,
+) -> Vec<libtest_mimic::Trial> {
     let mut trials = Vec::new();
     let output_dir = output_dir.map(|p| p.to_path_buf());
 
@@ -16,9 +20,11 @@ pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> 
         let output_dir = output_dir.clone();
         trials.push(libtest_mimic::Trial::test("H::h01", move || {
             let mut procs = ProcessGroup::new_in(output_dir.as_deref());
-            procs.start_server(&tcp_echo, "127.0.0.18", "9071", 600)
+            procs
+                .start_server(&tcp_echo, "127.0.0.18", "9071", 600)
                 .map_err(|e| format!("{e}"))?;
-            procs.start_clients(&tcp_echo, "127.0.0.18", "9071", 50, 600)
+            procs
+                .start_clients(&tcp_echo, "127.0.0.18", "9071", 50, 600)
                 .map_err(|e| format!("{e}"))?;
 
             let filter = "local_addr=127.0.0.18 local_port=9071";
@@ -39,16 +45,15 @@ pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> 
                 if count < min_expected {
                     return Err(format!(
                         "h01: reader {i}: expected >= {min_expected}, got {count}"
-                    ).into());
+                    )
+                    .into());
                 }
                 counts.push(count);
             }
 
             // All 4 readers should see the same count
             if counts.windows(2).any(|w| w[0] != w[1]) {
-                return Err(format!(
-                    "h01: readers saw different counts: {counts:?}"
-                ).into());
+                return Err(format!("h01: readers saw different counts: {counts:?}").into());
             }
 
             procs.kill_all();
@@ -63,9 +68,11 @@ pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> 
         let output_dir = output_dir.clone();
         trials.push(libtest_mimic::Trial::test("H::h02", move || {
             let mut procs = ProcessGroup::new_in(output_dir.as_deref());
-            procs.start_server(&tcp_echo, "127.0.0.18", "9071,9072", 600)
+            procs
+                .start_server(&tcp_echo, "127.0.0.18", "9071,9072", 600)
                 .map_err(|e| format!("{e}"))?;
-            procs.start_clients(&tcp_echo, "127.0.0.18", "9071,9072", 40, 600)
+            procs
+                .start_clients(&tcp_echo, "127.0.0.18", "9071,9072", 40, 600)
                 .map_err(|e| format!("{e}"))?;
 
             let filters = [
@@ -85,9 +92,7 @@ pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> 
             for (i, h) in handles.into_iter().enumerate() {
                 let count = h.join().unwrap().map_err(|e| format!("reader {i}: {e}"))?;
                 if count != expected {
-                    return Err(format!(
-                        "h02: reader {i}: expected {expected}, got {count}"
-                    ).into());
+                    return Err(format!("h02: reader {i}: expected {expected}, got {count}").into());
                 }
             }
 
@@ -103,9 +108,11 @@ pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> 
         let output_dir = output_dir.clone();
         trials.push(libtest_mimic::Trial::test("H::h03", move || {
             let mut procs = ProcessGroup::new_in(output_dir.as_deref());
-            procs.start_server(&tcp_echo, "127.0.0.18", "9073", 600)
+            procs
+                .start_server(&tcp_echo, "127.0.0.18", "9073", 600)
                 .map_err(|e| format!("{e}"))?;
-            procs.start_clients(&tcp_echo, "127.0.0.18", "9073", 50, 600)
+            procs
+                .start_clients(&tcp_echo, "127.0.0.18", "9073", 50, 600)
                 .map_err(|e| format!("{e}"))?;
 
             let filter = "local_addr=127.0.0.18 local_port=9073";
@@ -115,9 +122,7 @@ pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> 
                 let count = read_count(&read_tcpstats, filter)
                     .map_err(|e| format!("h03: reader {i}: {e}"))?;
                 if count == 0 {
-                    return Err(format!(
-                        "h03: reader {i}: unexpected 0 count"
-                    ).into());
+                    return Err(format!("h03: reader {i}: unexpected 0 count").into());
                 }
             }
 

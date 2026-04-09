@@ -1,10 +1,10 @@
-# Filter String Parsing Design for `tcp_stats_kld`
+# Filter String Parsing Design for `tcpstats`
 
 [← Back to README](../../README.md) | [Back to kernel module design](05-kernel-module.md)
 
 ## 1. Overview & Architectural Decision
 
-The `tcp_stats_kld` module supports named filter profiles created via sysctl:
+The `tcpstats` module supports named filter profiles created via sysctl:
 
 ```sh
 sysctl dev.tcpstats.profiles.cdn_clients="local_port=443 exclude=listen,timewait"
@@ -27,7 +27,7 @@ on the hot data path (socket iteration, record emission). The parser
 processes at most 512 bytes of input at most 16 times (max profiles), so
 even an inefficient parser has negligible performance impact.
 
-For programmatic use (the Rust `bsd-xtcp` tool), the binary
+For programmatic use (the Rust `tcpstats-reader` tool), the binary
 `tcpstats_filter` struct is available via the `TCPSTATS_SET_FILTER` ioctl,
 bypassing the string parser entirely.
 
@@ -1060,7 +1060,7 @@ ensure operators can always diagnose configuration failures:
 |---|---|---|---|
 | **errno return** | Programmatic (sysctl write returns errno) | Per-call | `sysctl: dev.tcpstats.profiles.foo: Invalid argument` |
 | **`dev.tcpstats.last_error` sysctl** | Interactive operator | Until next write | `"port '08080' has leading zero (octal not supported)"` |
-| **`dmesg` via `log(LOG_NOTICE)`** | System audit trail | Persistent (kernel log) | `tcp_stats_kld: filter parse error: port '08080' has leading zero` |
+| **`dmesg` via `log(LOG_NOTICE)`** | System audit trail | Persistent (kernel log) | `tcpstats: filter parse error: port '08080' has leading zero` |
 
 ### 9.2 Error Buffer Convention
 
@@ -1091,7 +1091,7 @@ tcpstats_profile_handler(SYSCTL_HANDLER_ARGS)
         strlcpy(tcpstats_last_error, errbuf, sizeof(tcpstats_last_error));
 
         /* Channel 3: log to dmesg */
-        log(LOG_NOTICE, "tcp_stats_kld: filter parse error: %s\n", errbuf);
+        log(LOG_NOTICE, "tcpstats: filter parse error: %s\n", errbuf);
 
         /* Channel 1: return errno to caller */
         return (error);
@@ -1128,7 +1128,7 @@ dev.tcpstats.last_error: unknown directive 'exlude'
 
 # Also visible in dmesg
 $ dmesg | tail -1
-tcp_stats_kld: filter parse error: unknown directive 'exlude'
+tcpstats: filter parse error: unknown directive 'exlude'
 
 # Fix the typo
 $ sysctl dev.tcpstats.profiles.web="local_port=443 exclude=listen"
@@ -1211,10 +1211,10 @@ fuzzing — without loading a kernel module.
 ### 11.1 Source File Organization
 
 ```
-kmod/tcp_stats_kld/
-  tcp_stats_filter_parse.c    # Parser implementation (dual-compile)
-  tcp_stats_filter_parse.h    # Parser API + struct definition
-  tcp_stats_kld.c             # Module code (includes parser)
+kmod/tcpstats/
+  tcp_statsdev_filter.c    # Parser implementation (dual-compile)
+  tcp_statsdev_filter.h    # Parser API + struct definition
+  tcp_statsdev.c             # Module code (includes parser)
   test/
     test_filter_parse.c       # Userspace test harness
     Makefile                  # Builds userspace test
@@ -1223,7 +1223,7 @@ kmod/tcp_stats_kld/
 ### 11.2 Conditional Compilation Guards
 
 ```c
-/* tcp_stats_filter_parse.c */
+/* tcp_statsdev_filter.c */
 
 #ifdef _KERNEL
 #include <sys/param.h>
@@ -1262,7 +1262,7 @@ section 8, plus positive test cases for all valid grammar productions:
 ```c
 /* test/test_filter_parse.c */
 
-#include "../tcp_stats_filter_parse.h"
+#include "../tcp_statsdev_filter.h"
 
 struct test_case {
     const char *name;
@@ -1390,7 +1390,7 @@ fuzzers:
 ```c
 /* test/fuzz_filter_parse.c — AFL/libFuzzer harness */
 
-#include "../tcp_stats_filter_parse.h"
+#include "../tcp_statsdev_filter.h"
 
 #ifdef __AFL_FUZZ_TESTCASE_LEN
 /* AFL persistent mode */
@@ -1441,12 +1441,12 @@ Build and run:
 
 ```sh
 # With AFL
-afl-gcc -o fuzz_filter test/fuzz_filter_parse.c tcp_stats_filter_parse.c
+afl-gcc -o fuzz_filter test/fuzz_filter_parse.c tcp_statsdev_filter.c
 afl-fuzz -i seeds/ -o findings/ -- ./fuzz_filter
 
 # With libFuzzer (clang)
 clang -fsanitize=fuzzer,address -o fuzz_filter \
-    test/fuzz_filter_parse.c tcp_stats_filter_parse.c
+    test/fuzz_filter_parse.c tcp_statsdev_filter.c
 ./fuzz_filter -max_len=512 corpus/
 ```
 
@@ -1594,7 +1594,7 @@ tcpstats_profile_create(const char *name, const char *filter_str,
 
     sx_xunlock(&tcpstats_profile_lock);
 
-    log(LOG_NOTICE, "tcp_stats_kld: profile '%s' created: %s\n",
+    log(LOG_NOTICE, "tcpstats: profile '%s' created: %s\n",
         name, filter_str);
     return (0);
 }

@@ -36,7 +36,7 @@ The fixed 4-tier model (1s/30s/60s/300s) from [Section 3.2](02-architecture.md#3
 ### CLI Interface
 
 ```
-bsd-xtcp \
+tcpstats-reader \
   --schedule fast=1s \
   --schedule detail=30s \
   --schedule summary=5m \
@@ -92,7 +92,7 @@ Schedules are independent — each fires on its own timer and produces a `BatchM
 ```protobuf
 syntax = "proto3";
 
-package bsd_xtcp;
+package tcpstats_reader;
 
 // ─── Enums ───────────────────────────────────────────────────────────
 
@@ -176,7 +176,7 @@ message CollectionMetadata {
   // Consumers use this to detect gaps (missed collections).
   uint64 batch_sequence = 10;
 
-  // Tool version string (e.g. "bsd-xtcp 0.1.0").
+  // Tool version string (e.g. "tcpstats-reader 0.1.0").
   string tool_version = 11;
 }
 
@@ -799,7 +799,7 @@ The scheduler uses `tokio::time::interval` per schedule, which provides automati
 
 ```toml
 [package]
-name = "bsd-xtcp"
+name = "tcpstats-reader"
 version = "0.1.0"
 edition = "2021"
 
@@ -860,7 +860,7 @@ fn main() -> Result<()> {
     let descriptor_set = std::fs::read(&descriptor_path)?;
     pbjson_build::Builder::new()
         .register_descriptors(&descriptor_set)?
-        .build(&[".bsd_xtcp"])?;
+        .build(&[".tcpstats_reader"])?;
 
     Ok(())
 }
@@ -870,9 +870,9 @@ fn main() -> Result<()> {
 
 ```rust
 // Include prost-generated code.
-pub mod bsd_xtcp {
-    include!(concat!(env!("OUT_DIR"), "/bsd_xtcp.rs"));
-    include!(concat!(env!("OUT_DIR"), "/bsd_xtcp.serde.rs"));
+pub mod tcpstats_reader {
+    include!(concat!(env!("OUT_DIR"), "/tcpstats_reader.rs"));
+    include!(concat!(env!("OUT_DIR"), "/tcpstats_reader.serde.rs"));
 }
 ```
 

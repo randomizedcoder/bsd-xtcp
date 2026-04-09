@@ -3,7 +3,7 @@
  *
  * Build:
  *   cc -O2 -o bench_filter_parse bench_filter_parse.c \
- *       ../tcp_stats_filter_parse.c -I..
+ *       ../tcp_statsdev_filter.c -I..
  *
  * Run:
  *   ./bench_filter_parse [iterations]
@@ -16,7 +16,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "../tcp_stats_filter_parse.h"
+#include "../tcp_statsdev_filter.h"
 
 /* Prevent dead-code elimination of parse results */
 static volatile int sink;

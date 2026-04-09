@@ -1,5 +1,5 @@
 use super::{OutputError, OutputSink};
-use crate::proto_gen::bsd_xtcp::BatchMessage;
+use crate::proto_gen::tcpstats_reader::BatchMessage;
 use std::io::{BufWriter, Write};
 
 /// JSON Lines output sink. Writes one JSON object per line.

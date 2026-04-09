@@ -1,4 +1,4 @@
-# tcp_stats_kld Performance Analysis & Adversarial Resilience Plan
+# tcpstats Performance Analysis & Adversarial Resilience Plan
 
 ## Table of Contents
 
@@ -51,7 +51,7 @@
 
 ## 1. Hot Loop Analysis
 
-All references are to `tcp_stats_kld.c` unless noted.
+All references are to `tcp_statsdev.c` unless noted.
 
 ### 1.1 Iterator Acquisition (lines 669-673)
 
@@ -266,7 +266,7 @@ error = uiomove(&rec, sizeof(rec), uio);
 
 **Current:** `tcpstats_fill_record()` always fills ALL 320 bytes regardless of what the reader needs.
 
-The `field_mask` field exists in `tcpstats_filter` (tcp_stats_kld.h:210) and the parser populates it (`tsf_parse_field_list()` in tcp_stats_filter_parse.c:969-1009), but it is **unused in the read path**.
+The `field_mask` field exists in `tcpstats_filter` (tcp_statsdev.h:210) and the parser populates it (`tsf_parse_field_list()` in tcp_statsdev_filter.c:969-1009), but it is **unused in the read path**.
 
 **Proposed:** Gate each field group on `sc->sc_filter.field_mask`:
 
@@ -299,7 +299,7 @@ This is the single highest-value micro-optimization for the read path.
 
 ### 2.4 IPv6 Address Filtering (Missing Feature)
 
-The parser populates `local_addr_v6`, `local_prefix_v6`, `remote_addr_v6`, `remote_prefix_v6` (tcp_stats_filter_parse.c:712-863), but `tcpstats_read()` has no IPv6 address match code.
+The parser populates `local_addr_v6`, `local_prefix_v6`, `remote_addr_v6`, `remote_prefix_v6` (tcp_statsdev_filter.c:712-863), but `tcpstats_read()` has no IPv6 address match code.
 
 **Implementation:** Add after line 754:
 ```c
@@ -398,7 +398,7 @@ No index/hash for filtered reads exists -- `INP_ALL_ITERATOR` is a full scan. Th
 
 ### 3.9 Module Unload While Readers Active -- SEVERITY: LOW
 
-`tcp_stats_kld_modevent(MOD_UNLOAD)` (line 884-893) calls `destroy_dev()` which blocks until all fds close. Module unload blocks but does not crash. Risk: stuck reader prevents module unload (and potentially system shutdown).
+`tcpstats_modevent(MOD_UNLOAD)` (line 884-893) calls `destroy_dev()` which blocks until all fds close. Module unload blocks but does not crash. Risk: stuck reader prevents module unload (and potentially system shutdown).
 
 ### 3.10 Jail/VNET Interaction -- SEVERITY: LOW
 
@@ -477,7 +477,7 @@ Every N sockets, call `kern_yield(PRI_USER)` to allow other threads to run. Prev
   CFLAGS+= ${TCPSTATS_CFLAGS}
   ```
 
-**Implementation in tcp_stats_kld.c:**
+**Implementation in tcp_statsdev.c:**
 ```c
 #ifdef TCPSTATS_DTRACE
 #include <sys/sdt.h>
@@ -644,7 +644,7 @@ pmcstat -p LLC-LOAD-MISSES -d /root/bench_read_tcpstats 100
 pmcstat -p INST_RETIRED -p CPU_CLK_UNHALTED -d /root/bench_read_tcpstats 100
 # Per-function profile for kmod
 pmcstat -p LLC-LOAD-MISSES -O /tmp/pmc.out /root/bench_read_tcpstats 100
-pmcstat -R /tmp/pmc.out -z10 -m /boot/kernel/tcp_stats_kld.ko
+pmcstat -R /tmp/pmc.out -z10 -m /boot/kernel/tcpstats.ko
 ```
 
 ---
@@ -654,32 +654,32 @@ pmcstat -R /tmp/pmc.out -z10 -m /boot/kernel/tcp_stats_kld.ko
 ### Critical (implement before production use)
 
 1. **Concurrent reader limit** (4.2) -- prevent write lock starvation from 100+ readers
-   - Files: `tcp_stats_kld.c` (add atomic counter + check in `tcpstats_read()`)
+   - Files: `tcp_statsdev.c` (add atomic counter + check in `tcpstats_read()`)
 2. **Fix `destroy_dev()` under sx xlock** (4.4) -- `tcpstats_profile_destroy()` line 189
-   - Files: `tcp_stats_kld.c` lines 179-193
+   - Files: `tcp_statsdev.c` lines 179-193
 3. **Read iteration timeout** (4.3) -- prevent multi-second blocking at 1M+ connections
-   - Files: `tcp_stats_kld.c` in `tcpstats_read()` loop
+   - Files: `tcp_statsdev.c` in `tcpstats_read()` loop
 4. **Signal check in iteration loop** (4.5) -- allow SIGINT to interrupt long reads
-   - Files: `tcp_stats_kld.c` in `tcpstats_read()` loop
+   - Files: `tcp_statsdev.c` in `tcpstats_read()` loop
 
 ### High Priority (significant performance improvement)
 
 5. **Cache `getsbinuptime()` per read()** (2.3) -- call once, pass to fill_record
-   - Files: `tcp_stats_kld.c` lines 621, 546-651, 654-771
+   - Files: `tcp_statsdev.c` lines 621, 546-651, 654-771
 6. **Implement field_mask gating** (2.2) -- skip timer/name/buffer fill when not needed
-   - Files: `tcp_stats_kld.c` `tcpstats_fill_record()` lines 546-651
+   - Files: `tcp_statsdev.c` `tcpstats_fill_record()` lines 546-651
 7. **Add IPv6 address filtering** (2.4) -- complete the half-built feature
-   - Files: `tcp_stats_kld.c` after line 754
+   - Files: `tcp_statsdev.c` after line 754
 
 ### Medium Priority (observability)
 
 8. **Add DTrace SDT probes as compile-time feature** (5.1)
-   - Files: `tcp_stats_kld.c` (add `#ifdef TCPSTATS_DTRACE` block + TSF_DTRACE_* macros), `Makefile` (add TCPSTATS_CFLAGS)
+   - Files: `tcp_statsdev.c` (add `#ifdef TCPSTATS_DTRACE` block + TSF_DTRACE_* macros), `Makefile` (add TCPSTATS_CFLAGS)
    - Default: disabled (zero overhead). Enable with `-DTCPSTATS_DTRACE` for benchmarking or operator-opted production use.
 9. **Add sysctl statistics counters (two-tier)** (5.2)
    - Tier 1 (always-on): reads_total, active_fds, opens_total -- outside hot loop
    - Tier 2 (compile-time `-DTCPSTATS_STATS`): per-skip-reason counts, timing -- hot loop counters
-   - Files: `tcp_stats_kld.c` (counter struct + macros + SYSCTL_ADD_U64 in MOD_LOAD)
+   - Files: `tcp_statsdev.c` (counter struct + macros + SYSCTL_ADD_U64 in MOD_LOAD)
 10. **Build read-path microbenchmark** (5.3)
     - Files: new `test/bench_read_tcpstats.c`
     - Note: concurrent reader test (32 threads) must first `sysctl dev.tcpstats.max_open_fds=64` (default is 16)

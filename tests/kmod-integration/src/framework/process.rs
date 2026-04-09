@@ -5,7 +5,7 @@ use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use chrono::Local;
 
 /// A group of background processes (server + clients) that are killed on drop.
@@ -31,13 +31,13 @@ impl ProcessGroup {
     pub fn new_in(output_dir: Option<&Path>) -> Self {
         let log_dir = match output_dir {
             Some(dir) => dir.join("processes"),
-            None => std::env::temp_dir().join(format!(
-                "kmod-integration-{}",
-                std::process::id()
-            )),
+            None => std::env::temp_dir().join(format!("kmod-integration-{}", std::process::id())),
         };
         if let Err(e) = fs::create_dir_all(&log_dir) {
-            eprintln!("  warn: could not create log dir {}: {e}", log_dir.display());
+            eprintln!(
+                "  warn: could not create log dir {}: {e}",
+                log_dir.display()
+            );
         } else {
             eprintln!("  stderr logs: {}", log_dir.display());
         }

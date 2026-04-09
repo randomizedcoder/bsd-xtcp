@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Rust client now supports FreeBSD as a first-class platform alongside macOS. On FreeBSD, the client reads per-socket TCP statistics from the `tcp_stats_kld` kernel module (`/dev/tcpstats`), enriches records with PID/FD mapping from the `kern.file` sysctl, and reads system-wide TCP counters from `net.inet.tcp.stats`. The Nix build system supports FreeBSD cross-compilation (via cross-rs) and SSH deploy+test targets for FreeBSD VMs.
+The Rust client now supports FreeBSD as a first-class platform alongside macOS. On FreeBSD, the client reads per-socket TCP statistics from the `tcpstats` kernel module (`/dev/tcpstats`), enriches records with PID/FD mapping from the `kern.file` sysctl, and reads system-wide TCP counters from `net.inet.tcp.stats`. The Nix build system supports FreeBSD cross-compilation (via cross-rs) and SSH deploy+test targets for FreeBSD VMs.
 
 All code compiles cleanly on Linux (stubs for platform-specific syscalls), and all parser functions are testable on any platform using synthetic byte buffers.
 
@@ -27,7 +27,7 @@ All code compiles cleanly on Linux (stubs for platform-specific syscalls), and a
 
 ### freebsd_layout.rs
 
-Mirrors the C `struct tcp_stats_record` from `kmod/tcp_stats_kld/tcp_stats_kld.h` as a `#[repr(C, packed)]` Rust struct. Compile-time assertion validates `size_of::<TcpStatsRecord>() == 320`.
+Mirrors the C `struct tcp_stats_record` from `kmod/tcpstats/tcp_statsdev.h` as a `#[repr(C, packed)]` Rust struct. Compile-time assertion validates `size_of::<TcpStatsRecord>() == 320`.
 
 - `TcpStatsRecord` -- 320-byte packed struct, field-for-field match with C
 - `TcpstatsVersion` -- ioctl response struct (16 bytes)
@@ -204,7 +204,7 @@ All checks pass:
 - `cargo test` -- 24 passed, 0 failed
 - `cargo clippy --workspace -- -D warnings` -- 0 warnings
 - `cargo fmt --check` -- clean
-- `nix build .#bsd-xtcp` -- builds successfully
+- `nix build .#tcpstats-reader` -- builds successfully
 
 ## Nix Build System
 
@@ -229,16 +229,16 @@ All checks pass:
 |---------|-------------|
 | `cross-x86_64-freebsd` | Cross-compile for FreeBSD amd64 (via cross-rs, requires Docker) |
 | `cross-aarch64-freebsd` | Cross-compile for FreeBSD aarch64 (via cross-rs, requires Docker) |
-| `bsd-xtcp-freebsd` | Deploy + build + test on ALL FreeBSD VMs |
-| `bsd-xtcp-freebsd150` | Deploy + build + test on FreeBSD 15.0 only |
-| `bsd-xtcp-freebsd143` | Deploy + build + test on FreeBSD 14.3 only |
+| `tcpstats-reader-freebsd` | Deploy + build + test on ALL FreeBSD VMs |
+| `tcpstats-reader-freebsd150` | Deploy + build + test on FreeBSD 15.0 only |
+| `tcpstats-reader-freebsd143` | Deploy + build + test on FreeBSD 14.3 only |
 
 ### New nix apps
 
 ```
-nix run .#bsd-xtcp-freebsd          # deploy + test on all FreeBSD VMs
-nix run .#bsd-xtcp-freebsd150       # deploy + test on FreeBSD 15.0 only
-nix run .#bsd-xtcp-freebsd143       # deploy + test on FreeBSD 14.3 only
+nix run .#tcpstats-reader-freebsd          # deploy + test on all FreeBSD VMs
+nix run .#tcpstats-reader-freebsd150       # deploy + test on FreeBSD 15.0 only
+nix run .#tcpstats-reader-freebsd143       # deploy + test on FreeBSD 14.3 only
 nix run .#cross-x86_64-freebsd      # cross-compile for FreeBSD amd64
 nix run .#cross-aarch64-freebsd     # cross-compile for FreeBSD aarch64
 ```
@@ -257,13 +257,13 @@ The deploy script (`nix/freebsd-deploy.nix`) follows the same pattern as `nix/km
 1. Ensure `rsync`, `cargo`, and `protoc` are available on the VM (installs via `pkg` if missing)
 2. Rsync full project source (excluding `target/` and `.git/`)
 3. Build on VM with `cargo build --release`
-4. Ensure `tcp_stats_kld` kernel module is loaded
-5. Run `bsd-xtcp --count 1 --pretty` and capture output
+4. Ensure `tcpstats` kernel module is loaded
+5. Run `tcpstats-reader --count 1 --pretty` and capture output
 6. Verify output contains expected FreeBSD markers (`platform`, `FREEBSD`, `cc_algo`, `rtt_us`, `state`)
 
 Environment variables:
 - `FREEBSD_HOST` -- override SSH target (default: per-VM from `constants.nix`)
-- `FREEBSD_DIR` -- override remote project directory (default: `/root/bsd-xtcp`)
+- `FREEBSD_DIR` -- override remote project directory (default: `/root/tcpstats-reader`)
 
 ## Verification checklist
 
@@ -273,9 +273,9 @@ Environment variables:
 | Unit tests (24) | PASS | `nix develop -c cargo test` |
 | Clippy (0 warnings) | PASS | `nix develop -c cargo clippy --workspace -- -D warnings` |
 | Formatting | PASS | `nix develop -c cargo fmt --check` |
-| Nix build | PASS | `nix build .#bsd-xtcp` |
+| Nix build | PASS | `nix build .#tcpstats-reader` |
 | Kmod tests (both VMs) | PASS | `nix run .#kmod-test-freebsd` |
-| FreeBSD VM integration (both VMs) | PASS | `nix run .#bsd-xtcp-freebsd` |
+| FreeBSD VM integration (both VMs) | PASS | `nix run .#tcpstats-reader-freebsd` |
 | macOS regression | Not yet tested | Needs macOS host run |
 | Cross-compile FreeBSD | Not yet tested | `nix build .#cross-x86_64-freebsd` (requires Docker) |
 
@@ -297,7 +297,7 @@ Tested on both VMs (FreeBSD 14.3-RELEASE and 15.0-RELEASE). All checks pass.
 | bench_read | PASS | PASS |
 | gen_conn | PASS | PASS |
 
-**Rust client** (`nix run .#bsd-xtcp-freebsd`): 2/2 VMs PASSED, 5/5 checks per VM
+**Rust client** (`nix run .#tcpstats-reader-freebsd`): 2/2 VMs PASSED, 5/5 checks per VM
 
 | Check | FreeBSD 14.3 | FreeBSD 15.0 |
 |-------|-------------|-------------|
@@ -315,7 +315,7 @@ Sample output (FreeBSD 14.3, 7 sockets: 4 ESTABLISHED + 3 LISTEN):
     "platform": "PLATFORM_FREEBSD",
     "osVersion": "FreeBSD 14.3-RELEASE",
     "dataSources": ["DATA_SOURCE_FREEBSD_KLD", "DATA_SOURCE_KERN_FILE"],
-    "toolVersion": "bsd-xtcp 0.1.0"
+    "toolVersion": "tcpstats-reader 0.1.0"
   },
   "records": [
     {
@@ -340,7 +340,7 @@ Sample output (FreeBSD 14.3, 7 sockets: 4 ESTABLISHED + 3 LISTEN):
 
 1. **Rust `read_to_end` on character devices** (`src/platform/freebsd.rs`): Rust's `read_to_end` with an empty `Vec` returns 0 bytes from FreeBSD character devices because `stat()` reports `st_size=0`, causing a short-circuit. Fixed by pre-allocating `Vec::with_capacity(16 * 1024)`.
 
-2. **Deploy script kmod loading** (`nix/freebsd-deploy.nix`): The deploy script used `kldload tcp_stats_kld` which only searches `/boot/modules/`. Fixed to build the kmod from the synced source and load with the full path.
+2. **Deploy script kmod loading** (`nix/freebsd-deploy.nix`): The deploy script used `kldload tcpstats` which only searches `/boot/modules/`. Fixed to build the kmod from the synced source and load with the full path.
 
 3. **Deploy script verification field names** (`nix/freebsd-deploy.nix`): Verification checks used snake_case field names (`cc_algo`, `rtt_us`) but pbjson serializes protobuf fields as camelCase (`sndCwnd`, `rttUs`). Updated to match actual JSON output.
 
@@ -349,7 +349,7 @@ Sample output (FreeBSD 14.3, 7 sockets: 4 ESTABLISHED + 3 LISTEN):
 ### Prerequisites
 
 - Both FreeBSD VMs must be running and reachable via SSH
-- SSH keys configured for passwordless access to `root@192.168.122.41` (FreeBSD 15.0) and `root@192.168.122.27` (FreeBSD 14.3)
+- SSH keys configured for passwordless access to `root@192.168.122.41` (FreeBSD 15.0), `root@192.168.122.85` (FreeBSD 14.4), and `root@192.168.122.27` (FreeBSD 14.3)
 - Nix with flakes enabled on the host machine
 
 ### Quick start (automated, from Linux host)
@@ -368,14 +368,14 @@ nix run .#kmod-test-freebsd -- all         # all offline tests (default)
 nix run .#kmod-test-freebsd -- live_all
 
 # Deploy and run Rust client on both VMs
-# (installs Rust+protobuf, syncs source, builds, loads kmod, runs bsd-xtcp, verifies output)
-nix run .#bsd-xtcp-freebsd
+# (installs Rust+protobuf, syncs source, builds, loads kmod, runs tcpstats-reader, verifies output)
+nix run .#tcpstats-reader-freebsd
 
 # Target a single VM
 nix run .#kmod-test-freebsd150             # kmod tests on FreeBSD 15.0 only
 nix run .#kmod-test-freebsd143             # kmod tests on FreeBSD 14.3 only
-nix run .#bsd-xtcp-freebsd150              # Rust client on FreeBSD 15.0 only
-nix run .#bsd-xtcp-freebsd143              # Rust client on FreeBSD 14.3 only
+nix run .#tcpstats-reader-freebsd150              # Rust client on FreeBSD 15.0 only
+nix run .#tcpstats-reader-freebsd143              # Rust client on FreeBSD 14.3 only
 ```
 
 ### Manual testing (directly on a FreeBSD VM)
@@ -385,26 +385,27 @@ If you prefer to run tests manually on a VM:
 ```sh
 # SSH to a FreeBSD VM
 ssh root@192.168.122.41   # FreeBSD 15.0
+ssh root@192.168.122.85   # FreeBSD 14.4
 ssh root@192.168.122.27   # FreeBSD 14.3
 
 # Install dependencies (idempotent, safe to re-run)
-sh /root/bsd-xtcp/kmod/tcp_stats_kld/test/freebsd-pkg-setup.sh
+sh /root/tcpstats-reader/kmod/tcpstats/test/freebsd-pkg-setup.sh
 
 # Run kmod tests
-sh /root/bsd-xtcp/kmod/tcp_stats_kld/test/run-tests-freebsd.sh all
-sh /root/bsd-xtcp/kmod/tcp_stats_kld/test/run-tests-freebsd.sh unit
-sh /root/bsd-xtcp/kmod/tcp_stats_kld/test/run-tests-freebsd.sh live_all    # needs root
+sh /root/tcpstats-reader/kmod/tcpstats/test/run-tests-freebsd.sh all
+sh /root/tcpstats-reader/kmod/tcpstats/test/run-tests-freebsd.sh unit
+sh /root/tcpstats-reader/kmod/tcpstats/test/run-tests-freebsd.sh live_all    # needs root
 
 # Build and load the kernel module
-cd /root/bsd-xtcp/kmod/tcp_stats_kld && make clean all
-kldload /root/bsd-xtcp/kmod/tcp_stats_kld/tcp_stats_kld.ko
+cd /root/tcpstats-reader/kmod/tcpstats && make clean all
+kldload /root/tcpstats-reader/kmod/tcpstats/tcpstats.ko
 
 # Build and run the Rust client
-cd /root/bsd-xtcp && cargo build --release
-./target/release/bsd-xtcp --count 1 --pretty
+cd /root/tcpstats-reader && cargo build --release
+./target/release/tcpstats-reader --count 1 --pretty
 
 # Unload the kernel module when done
-kldunload tcp_stats_kld
+kldunload tcpstats
 ```
 
 ### Environment variable overrides
@@ -412,8 +413,8 @@ kldunload tcp_stats_kld
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FREEBSD_HOST` | per-VM from `nix/constants.nix` | SSH target (e.g. `root@192.168.122.41`) |
-| `FREEBSD_DIR` | `/root/bsd-xtcp` | Remote project directory (for `bsd-xtcp-freebsd`) |
-| `FREEBSD_KMOD_DIR` | `/root/bsd-xtcp/kmod` | Remote kmod directory (for `kmod-test-freebsd`) |
+| `FREEBSD_DIR` | `/root/tcpstats-reader` | Remote project directory (for `tcpstats-reader-freebsd`) |
+| `FREEBSD_KMOD_DIR` | `/root/tcpstats-reader/kmod` | Remote kmod directory (for `kmod-test-freebsd`) |
 
 ### Available kmod test targets
 
@@ -425,7 +426,7 @@ kldunload tcp_stats_kld
 | `ubsan` | UndefinedBehaviorSanitizer |
 | `bench` | Performance benchmark (1M iterations, 10 workloads) |
 | `callgrind` | Callgrind CPU profiling |
-| `kmod` | Build kernel module (`tcp_stats_kld.ko`) |
+| `kmod` | Build kernel module (`tcpstats.ko`) |
 | `bench_read` | Compile read-path microbenchmark |
 | `gen_conn` | Compile loopback connection generator |
 | `all` | All of the above (default) |

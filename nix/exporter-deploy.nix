@@ -6,7 +6,7 @@ let
   # Common preamble: rsync source, ensure toolchain.
   mkPreamble = name: vm: ''
     VM_HOST="''${FREEBSD_HOST:-${vm.host}}"
-    VM_DIR="''${FREEBSD_DIR:-/root/bsd-xtcp}"
+    VM_DIR="''${FREEBSD_DIR:-/root/tcpstats-reader}"
 
     echo ""
     echo "============================================="
@@ -39,11 +39,11 @@ let
   mkBuildScript = name: vm: ''
     ${mkPreamble name vm}
 
-    echo "--- ${name}: building tcp-stats-kld-exporter ---"
-    ssh "$VM_HOST" "cd $VM_DIR && find src utils -name '*.rs' -exec touch {} + && cargo build --release -p tcp-stats-kld-exporter"
+    echo "--- ${name}: building tcpstats-exporter ---"
+    ssh "$VM_HOST" "cd $VM_DIR && find src utils -name '*.rs' -exec touch {} + && cargo build --release -p tcpstats-exporter"
 
     echo "--- ${name}: verifying binary ---"
-    ssh "$VM_HOST" "test -f $VM_DIR/target/release/tcp-stats-kld-exporter"
+    ssh "$VM_HOST" "test -f $VM_DIR/target/release/tcpstats-exporter"
 
     echo "============================================="
     echo "  ${name}: build PASSED"
@@ -54,8 +54,8 @@ let
   mkLintScript = name: vm: ''
     ${mkPreamble name vm}
 
-    echo "--- ${name}: linting tcp-stats-kld-exporter ---"
-    ssh "$VM_HOST" "cd $VM_DIR && find src utils -name '*.rs' -exec touch {} + && cargo clippy -p tcp-stats-kld-exporter -- -D warnings"
+    echo "--- ${name}: linting tcpstats-exporter ---"
+    ssh "$VM_HOST" "cd $VM_DIR && find src utils -name '*.rs' -exec touch {} + && cargo clippy -p tcpstats-exporter -- -D warnings"
 
     echo "============================================="
     echo "  ${name}: lint PASSED"
@@ -67,12 +67,12 @@ let
     ${mkPreamble name vm}
 
     echo "--- ${name}: building workspace ---"
-    ssh "$VM_HOST" "cd $VM_DIR && find src utils -name '*.rs' -exec touch {} + && cargo build --release -p tcp-stats-kld-exporter -p tcp-echo"
+    ssh "$VM_HOST" "cd $VM_DIR && find src utils -name '*.rs' -exec touch {} + && cargo build --release -p tcpstats-exporter -p tcp-echo"
 
     # Ensure kmod is loaded
     echo "--- ${name}: building and loading KLD ---"
-    ssh "$VM_HOST" "cd $VM_DIR/kmod/tcp_stats_kld && make clean all"
-    ssh "$VM_HOST" "kldstat -q -n tcp_stats_kld && kldunload tcp_stats_kld; kldload $VM_DIR/kmod/tcp_stats_kld/tcp_stats_kld.ko"
+    ssh "$VM_HOST" "cd $VM_DIR/kmod/tcpstats && make clean all"
+    ssh "$VM_HOST" "kldstat -q -n tcpstats && kldunload tcpstats; kldload $VM_DIR/kmod/tcpstats/tcpstats.ko"
 
     # Start tcp-echo server for test connections
     echo "--- ${name}: starting tcp-echo server ---"
@@ -86,7 +86,7 @@ let
 
     # Start exporter in background
     echo "--- ${name}: starting exporter ---"
-    ssh "$VM_HOST" "$VM_DIR/target/release/tcp-stats-kld-exporter --listen 127.0.0.1:9814 &"
+    ssh "$VM_HOST" "$VM_DIR/target/release/tcpstats-exporter --listen 127.0.0.1:9814 &"
     ssh "$VM_HOST" 'sleep 1'
 
     # Scrape /metrics
@@ -135,7 +135,7 @@ let
 
     # Cleanup
     echo "--- ${name}: cleaning up ---"
-    ssh "$VM_HOST" 'pkill -f tcp-stats-kld-exporter 2>/dev/null || true'
+    ssh "$VM_HOST" 'pkill -f tcpstats-exporter 2>/dev/null || true'
     ssh "$VM_HOST" 'pkill -f "tcp-echo" 2>/dev/null || true'
 
     echo ""
