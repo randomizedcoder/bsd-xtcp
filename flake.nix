@@ -38,6 +38,12 @@
 #     integration-test-freebsd143 Deploy + integration test on FreeBSD 14.3 only
 #                                 Set INTEGRATION_TARGET env var to select target
 #                                 (default: live_integration; options: all, live_all, live_smoke, pkg_setup, ...)
+#     port-test-freebsd           Test FreeBSD port build on ALL VMs
+#     port-test-freebsd150        Test FreeBSD port build on FreeBSD 15.0 only
+#     port-test-freebsd144        Test FreeBSD port build on FreeBSD 14.4 only
+#     port-test-freebsd143        Test FreeBSD port build on FreeBSD 14.3 only
+#                                 Set PORT_SRC env var to override port source path
+#                                 (default: ../freebsd-ports/net/tcpstats-kmod)
 #
 #   Apps (build with auto-named output dirs):
 #     cross-x86_64-darwin         nix run .#cross-x86_64-darwin  -> result-cross-x86_64-darwin/
@@ -144,6 +150,10 @@
         };
 
         exporterDeploy = import ./nix/exporter-deploy.nix {
+          inherit pkgs src;
+        };
+
+        portTest = import ./nix/port-test.nix {
           inherit pkgs src;
         };
 
@@ -273,6 +283,17 @@
             };
           }) exporterDeploy
         );
+
+        # Port test apps.
+        portTestApps = pkgs.lib.optionalAttrs pkgs.stdenv.isLinux (
+          pkgs.lib.mapAttrs' (name: pkg: {
+            name = name;
+            value = {
+              type = "app";
+              program = "${pkg}/bin/${pkg.name}";
+            };
+          }) portTest
+        );
       in
       {
         packages = {
@@ -281,9 +302,9 @@
           tcp-echo = tcpEcho;
           tcpstats-exporter = tcpstatsExporter;
           proto = proto;
-        } // kmodTests // kmodAnalysis // freebsdDeploy // freebsdIntegration // exporterDeploy // crossPackages // tcpEchoCrossPackages // crossAll;
+        } // kmodTests // kmodAnalysis // freebsdDeploy // freebsdIntegration // exporterDeploy // portTest // crossPackages // tcpEchoCrossPackages // crossAll;
 
-        apps = crossApps // freebsdApps // integrationApps // exporterApps;
+        apps = crossApps // freebsdApps // integrationApps // exporterApps // portTestApps;
 
         checks = checks;
 

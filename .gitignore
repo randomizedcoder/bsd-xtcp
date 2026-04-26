@@ -1,5 +1,7 @@
-# Prerequisites
+# Prerequisites (C/Makefile dependency files)
 *.d
+# DTrace scripts are also .d — keep them tracked
+!kmod/tcpstats/dtrace/*.d
 
 # Object files
 *.o
