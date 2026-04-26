@@ -9,7 +9,7 @@ use std::time::Instant;
 
 type NamedAction<'a> = (&'a str, Box<dyn Fn() -> Result<()> + 'a>);
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use libtest_mimic::Arguments;
 
 use framework::compile::CompileConfig;
@@ -19,10 +19,10 @@ use framework::output::{RunOutput, TargetResult, TargetStatus};
 /// Default paths — overridable via CLI flags.
 const DEFAULT_TCP_ECHO: &str = "tcp-echo";
 const DEFAULT_READ_TCPSTATS: &str = "read_tcpstats";
-const DEFAULT_KMOD_SRC: &str = "kmod/tcp_stats_kld";
+const DEFAULT_KMOD_SRC: &str = "kmod/tcpstats";
 const DEFAULT_CC: &str = "cc";
-const DEFAULT_EXPORTER: &str = "tcp-stats-kld-exporter";
-const DEFAULT_BSD_XTCP: &str = "bsd-xtcp";
+const DEFAULT_EXPORTER: &str = "tcpstats-exporter";
+const DEFAULT_TCPSTATS_READER: &str = "tcpstats-reader";
 
 struct Config {
     tcp_echo: String,
@@ -30,7 +30,7 @@ struct Config {
     kmod_src: String,
     cc: String,
     exporter: String,
-    bsd_xtcp: String,
+    tcpstats_reader: String,
     target: String,
     category: String,
     output_dir: Option<PathBuf>,
@@ -45,7 +45,7 @@ fn parse_args() -> Config {
         kmod_src: DEFAULT_KMOD_SRC.to_string(),
         cc: DEFAULT_CC.to_string(),
         exporter: DEFAULT_EXPORTER.to_string(),
-        bsd_xtcp: DEFAULT_BSD_XTCP.to_string(),
+        tcpstats_reader: DEFAULT_TCPSTATS_READER.to_string(),
         target: "all".to_string(),
         category: "all".to_string(),
         output_dir: None,
@@ -74,9 +74,9 @@ fn parse_args() -> Config {
                 i += 1;
                 cfg.exporter = args.get(i).cloned().unwrap_or_default();
             }
-            "--bsd-xtcp" => {
+            "--tcpstats-reader" => {
                 i += 1;
-                cfg.bsd_xtcp = args.get(i).cloned().unwrap_or_default();
+                cfg.tcpstats_reader = args.get(i).cloned().unwrap_or_default();
             }
             "--category" => {
                 i += 1;
@@ -129,10 +129,10 @@ Setup:
 Options:
   --tcp-echo PATH         -- path to tcp-echo binary
   --read-tcpstats PATH    -- path to read_tcpstats binary
-  --bsd-xtcp PATH         -- path to bsd-xtcp binary
+  --tcpstats-reader PATH  -- path to tcpstats-reader binary
   --kmod-src PATH         -- path to kmod source dir
   --cc PATH               -- C compiler (default: cc)
-  --exporter PATH         -- path to tcp-stats-kld-exporter binary
+  --exporter PATH         -- path to tcpstats-exporter binary
   --category CAT          -- filter category for live_integration
   --output-dir PATH       -- override output directory (default: /tmp/kmod-integration/TIMESTAMP)
 
@@ -168,10 +168,8 @@ fn main() {
 
     let result = match cfg.target.as_str() {
         // Compile-only targets
-        "unit" | "memcheck" | "asan" | "ubsan" | "bench" | "callgrind" | "kmod"
-        | "bench_read" | "gen_conn" | "all" => {
-            run_compile_target(&cfg, run_output.as_mut().ok())
-        }
+        "unit" | "memcheck" | "asan" | "ubsan" | "bench" | "callgrind" | "kmod" | "bench_read"
+        | "gen_conn" | "all" => run_compile_target(&cfg, run_output.as_mut().ok()),
 
         // Setup
         "pkg_setup" => pkg_setup::run_pkg_setup(),
@@ -224,19 +222,34 @@ fn run_compile_target(cfg: &Config, mut run_output: Option<&mut RunOutput>) -> R
 
     let targets: Vec<NamedAction<'_>> = vec![
         ("unit", Box::new(|| targets::compile_tests::run_unit(&cc))),
-        ("memcheck", Box::new(|| targets::compile_tests::run_memcheck(&cc))),
+        (
+            "memcheck",
+            Box::new(|| targets::compile_tests::run_memcheck(&cc)),
+        ),
         ("asan", Box::new(|| targets::compile_tests::run_asan(&cc))),
         ("ubsan", Box::new(|| targets::compile_tests::run_ubsan(&cc))),
         ("bench", Box::new(|| targets::compile_tests::run_bench(&cc))),
-        ("callgrind", Box::new(|| targets::compile_tests::run_callgrind(&cc))),
-        ("kmod", Box::new(|| {
-            targets::compile_tests::build_kmod(&cc)?;
-            targets::compile_tests::build_kmod_stats(&cc)?;
-            targets::compile_tests::build_kmod_dtrace(&cc)?;
-            Ok(())
-        })),
-        ("bench_read", Box::new(|| targets::compile_tests::build_bench_read(&cc))),
-        ("gen_conn", Box::new(|| targets::compile_tests::build_gen_conn(&cc))),
+        (
+            "callgrind",
+            Box::new(|| targets::compile_tests::run_callgrind(&cc)),
+        ),
+        (
+            "kmod",
+            Box::new(|| {
+                targets::compile_tests::build_kmod(&cc)?;
+                targets::compile_tests::build_kmod_stats(&cc)?;
+                targets::compile_tests::build_kmod_dtrace(&cc)?;
+                Ok(())
+            }),
+        ),
+        (
+            "bench_read",
+            Box::new(|| targets::compile_tests::build_bench_read(&cc)),
+        ),
+        (
+            "gen_conn",
+            Box::new(|| targets::compile_tests::build_gen_conn(&cc)),
+        ),
     ];
 
     let mut passed = 0u32;
@@ -263,7 +276,11 @@ fn run_compile_target(cfg: &Config, mut run_output: Option<&mut RunOutput>) -> R
             if let Some(ref mut ro) = run_output {
                 ro.record(TargetResult {
                     name: name.to_string(),
-                    status: if res.is_ok() { TargetStatus::Pass } else { TargetStatus::Fail },
+                    status: if res.is_ok() {
+                        TargetStatus::Pass
+                    } else {
+                        TargetStatus::Fail
+                    },
                     duration_secs,
                     sub_tests: Vec::new(),
                 });
@@ -348,7 +365,10 @@ fn ensure_read_tcpstats(cfg: &Config) -> Result<String> {
         return Ok(cfg.read_tcpstats.clone());
     }
 
-    println!("  read_tcpstats not found at '{}', compiling...", cfg.read_tcpstats);
+    println!(
+        "  read_tcpstats not found at '{}', compiling...",
+        cfg.read_tcpstats
+    );
     let cc = compile_config(cfg);
     let path = cc.build_read_tcpstats()?;
     println!("  compiled read_tcpstats at {path}");
@@ -438,40 +458,41 @@ fn run_live_all(cfg: &Config, run_output: Option<&mut RunOutput>) -> Result<()> 
     println!("  live_all: running all live targets");
     println!("========================================");
 
-    let output_dir = run_output
-        .as_ref()
-        .map(|ro| ro.root().to_path_buf());
+    let output_dir = run_output.as_ref().map(|ro| ro.root().to_path_buf());
 
     let mut passed = 0u32;
     let mut failed = 0u32;
 
-    let mut run = |name: &str,
-                   f: &dyn Fn() -> Result<()>,
-                   run_output: &mut Option<&mut RunOutput>| {
-        let start = Instant::now();
-        let res = f();
-        let duration_secs = start.elapsed().as_secs_f64();
+    let mut run =
+        |name: &str, f: &dyn Fn() -> Result<()>, run_output: &mut Option<&mut RunOutput>| {
+            let start = Instant::now();
+            let res = f();
+            let duration_secs = start.elapsed().as_secs_f64();
 
-        match &res {
-            Ok(()) => {
-                println!("  {name}: PASS");
-                passed += 1;
+            match &res {
+                Ok(()) => {
+                    println!("  {name}: PASS");
+                    passed += 1;
+                }
+                Err(e) => {
+                    println!("  {name}: FAIL -- {e:#}");
+                    failed += 1;
+                }
             }
-            Err(e) => {
-                println!("  {name}: FAIL -- {e:#}");
-                failed += 1;
-            }
-        }
 
-        if let Some(ref mut ro) = run_output {
-            ro.record(TargetResult {
-                name: name.to_string(),
-                status: if res.is_ok() { TargetStatus::Pass } else { TargetStatus::Fail },
-                duration_secs,
-                sub_tests: Vec::new(),
-            });
-        }
-    };
+            if let Some(ref mut ro) = run_output {
+                ro.record(TargetResult {
+                    name: name.to_string(),
+                    status: if res.is_ok() {
+                        TargetStatus::Pass
+                    } else {
+                        TargetStatus::Fail
+                    },
+                    duration_secs,
+                    sub_tests: Vec::new(),
+                });
+            }
+        };
 
     let od = output_dir.as_deref();
     let mut ro = run_output;
@@ -481,19 +502,23 @@ fn run_live_all(cfg: &Config, run_output: Option<&mut RunOutput>) -> Result<()> 
 
     // Rebuild with full observability flags and reload.
     // Set TCPSTATS_DEBUG=1 env var to add verbose filter logging to dmesg.
-    run("_reload_kmod", &|| {
-        let debug_flag = if std::env::var("TCPSTATS_DEBUG").as_deref() == Ok("1") {
-            println!("  TCPSTATS_DEBUG enabled -- filter debug logging to dmesg");
-            " -DTCPSTATS_DEBUG"
-        } else {
-            ""
-        };
-        let flags = format!("-DTCPSTATS_STATS -DTCPSTATS_DTRACE{debug_flag}");
-        println!("  reloading kmod with {flags}...");
-        framework::system::kmod_build(&cfg.kmod_src, Some(&flags))?;
-        framework::system::kmod_load(&cfg.kmod_src)?;
-        Ok(())
-    }, &mut ro);
+    run(
+        "_reload_kmod",
+        &|| {
+            let debug_flag = if std::env::var("TCPSTATS_DEBUG").as_deref() == Ok("1") {
+                println!("  TCPSTATS_DEBUG enabled -- filter debug logging to dmesg");
+                " -DTCPSTATS_DEBUG"
+            } else {
+                ""
+            };
+            let flags = format!("-DTCPSTATS_STATS -DTCPSTATS_DTRACE{debug_flag}");
+            println!("  reloading kmod with {flags}...");
+            framework::system::kmod_build(&cfg.kmod_src, Some(&flags))?;
+            framework::system::kmod_load(&cfg.kmod_src)?;
+            Ok(())
+        },
+        &mut ro,
+    );
 
     // Attempt to start the exporter; if it fails, continue with None
     let exporter = match ExporterHandle::start(&cfg.exporter, "127.0.0.1:9814") {
@@ -512,7 +537,11 @@ fn run_live_all(cfg: &Config, run_output: Option<&mut RunOutput>) -> Result<()> 
     run("live_stats", &|| run_live_stats(cfg, exp, od), &mut ro);
     run("live_dtrace", &|| run_live_dtrace(cfg, exp, od), &mut ro);
     run("live_dos", &|| run_live_dos(cfg, exp, od), &mut ro);
-    run("live_integration", &|| run_live_integration(cfg, od), &mut ro);
+    run(
+        "live_integration",
+        &|| run_live_integration(cfg, od),
+        &mut ro,
+    );
 
     // exporter killed on drop
 
@@ -541,7 +570,7 @@ fn run_live_soak(cfg: &Config, output_dir: Option<&Path>) -> Result<()> {
     let soak_config = targets::soak::SoakConfig {
         tcp_echo: cfg.tcp_echo.clone(),
         read_tcpstats,
-        bsd_xtcp: cfg.bsd_xtcp.clone(),
+        tcpstats_reader: cfg.tcpstats_reader.clone(),
         kmod_src: cfg.kmod_src.clone(),
         duration_hours,
         connections,
@@ -561,7 +590,7 @@ fn run_live_soak_hours(cfg: &Config, hours: u64, output_dir: Option<&Path>) -> R
     let soak_config = targets::soak::SoakConfig {
         tcp_echo: cfg.tcp_echo.clone(),
         read_tcpstats,
-        bsd_xtcp: cfg.bsd_xtcp.clone(),
+        tcpstats_reader: cfg.tcpstats_reader.clone(),
         kmod_src: cfg.kmod_src.clone(),
         duration_hours: hours,
         connections,

@@ -101,24 +101,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
-name = "bsd-xtcp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "hostname",
- "libc",
- "pbjson",
- "pbjson-build",
- "pbjson-types",
- "prost",
- "prost-build",
- "prost-types",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -743,12 +725,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "tcp-stats-kld-exporter"
+name = "tcpstats-exporter"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bsd-xtcp",
+ "tcpstats-reader",
  "tiny_http",
+]
+
+[[package]]
+name = "tcpstats-reader"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "hostname",
+ "libc",
+ "pbjson",
+ "pbjson-build",
+ "pbjson-types",
+ "prost",
+ "prost-build",
+ "prost-types",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

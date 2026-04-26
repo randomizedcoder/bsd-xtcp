@@ -1,10 +1,10 @@
-# tcp-stats-kld-exporter Status
+# tcpstats-exporter Status
 
 ## Overview
 
-`tcp-stats-kld-exporter` is a Prometheus exporter for the `tcp_stats_kld` FreeBSD kernel module. It runs as a standalone HTTP daemon on the FreeBSD host, serving Prometheus text exposition format metrics at `/metrics`.
+`tcpstats-exporter` is a Prometheus exporter for the `tcpstats` FreeBSD kernel module. It runs as a standalone HTTP daemon on the FreeBSD host, serving Prometheus text exposition format metrics at `/metrics`.
 
-The exporter reads per-socket TCP state via `bsd_xtcp::platform::collect_tcp_sockets()` (which opens `/dev/tcpstats` on FreeBSD) and system-wide TCP counters via `bsd_xtcp::sysctl::read_tcp_stats()` (which reads `net.inet.tcp.stats` via sysctl). Each scrape performs a fresh collection.
+The exporter reads per-socket TCP state via `tcpstats_reader::platform::collect_tcp_sockets()` (which opens `/dev/tcpstats` on FreeBSD) and system-wide TCP counters via `tcpstats_reader::sysctl::read_tcp_stats()` (which reads `net.inet.tcp.stats` via sysctl). Each scrape performs a fresh collection.
 
 ## Build status
 
@@ -16,7 +16,7 @@ Not yet verified running on a FreeBSD VM end-to-end. The Nix deployment scripts 
 
 | Crate | Version | Purpose |
 |-------|---------|---------|
-| `bsd-xtcp` | workspace (path) | Socket collection and sysctl reading |
+| `tcpstats-reader` | workspace (path) | Socket collection and sysctl reading |
 | `tiny_http` | 0.12 | HTTP server |
 | `anyhow` | 1 | Error handling |
 
@@ -85,7 +85,7 @@ An `AtomicU32` tracks active in-flight requests. If `active >= max_concurrent` (
 ## CLI and configuration
 
 ```
-Usage: tcp-stats-kld-exporter [OPTIONS]
+Usage: tcpstats-exporter [OPTIONS]
 
 Options:
   --listen ADDR:PORT   Listen address (default: 127.0.0.1:9814)
@@ -100,15 +100,15 @@ Hardcoded defaults: `max_concurrent=2`, `max_query_rate=2.0`, `listen_addr=127.0
 ## How to run
 
 ```sh
-# On a FreeBSD host with tcp_stats_kld loaded
-cargo build --release -p tcp-stats-kld-exporter
-./target/release/tcp-stats-kld-exporter
+# On a FreeBSD host with tcpstats loaded
+cargo build --release -p tcpstats-exporter
+./target/release/tcpstats-exporter
 
 # Override listen address
-./target/release/tcp-stats-kld-exporter --listen 0.0.0.0:9814
+./target/release/tcpstats-exporter --listen 0.0.0.0:9814
 
 # Raise rate limit for testing
-TCPSTATS_MAX_QUERY_RATE=20 ./target/release/tcp-stats-kld-exporter
+TCPSTATS_MAX_QUERY_RATE=20 ./target/release/tcpstats-exporter
 
 # Scrape
 fetch -q -o - http://127.0.0.1:9814/metrics
@@ -118,7 +118,7 @@ fetch -q -o - http://127.0.0.1:9814/metrics
 
 ### Local build (Linux/macOS — compiles but cannot collect on non-FreeBSD)
 
-Defined in `nix/tcp-stats-kld-exporter-package.nix`. Uses `rustPlatform.buildRustPackage` with workspace-scoped `cargoBuildFlags = ["-p" "tcp-stats-kld-exporter"]`. Runs the unit tests during build.
+Defined in `nix/tcpstats-exporter-package.nix`. Uses `rustPlatform.buildRustPackage` with workspace-scoped `cargoBuildFlags = ["-p" "tcpstats-exporter"]`. Runs the unit tests during build.
 
 ### FreeBSD VM deployment
 
@@ -126,8 +126,8 @@ Defined in `nix/exporter-deploy.nix`. Provides per-VM scripts:
 
 | Script | Description |
 |--------|-------------|
-| `exporter-build-<vm>` | Rsync + `cargo build --release -p tcp-stats-kld-exporter` |
-| `exporter-lint-<vm>` | Rsync + `cargo clippy -p tcp-stats-kld-exporter -- -D warnings` |
+| `exporter-build-<vm>` | Rsync + `cargo build --release -p tcpstats-exporter` |
+| `exporter-lint-<vm>` | Rsync + `cargo clippy -p tcpstats-exporter -- -D warnings` |
 | `exporter-test-<vm>` | Build, load kmod, start tcp-echo + exporter, scrape /metrics, verify output + rate limiting |
 | `exporter-all-<vm>` | Build + lint + test sequentially |
 
@@ -146,7 +146,7 @@ Scrape failures are logged but never fail a test. The integration uses raw `std:
 ## File structure
 
 ```
-utils/tcp-stats-kld-exporter/
+utils/tcpstats-exporter/
 ├── Cargo.toml
 └── src/
     ├── main.rs          HTTP server, request routing, rate/concurrency limiting
@@ -155,7 +155,7 @@ utils/tcp-stats-kld-exporter/
     └── metrics.rs       Prometheus text format renderer + unit tests
 
 nix/
-├── tcp-stats-kld-exporter-package.nix   Local Nix build
+├── tcpstats-exporter-package.nix   Local Nix build
 └── exporter-deploy.nix                  FreeBSD VM deploy/lint/test scripts
 ```
 

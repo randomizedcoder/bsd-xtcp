@@ -13,7 +13,7 @@ fn main() -> Result<()> {
     let descriptor_set = std::fs::read(&descriptor_path)?;
     pbjson_build::Builder::new()
         .register_descriptors(&descriptor_set)?
-        .build(&[".bsd_xtcp"])?;
+        .build(&[".tcpstats_reader"])?;
 
     Ok(())
 }

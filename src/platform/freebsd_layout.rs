@@ -1,6 +1,6 @@
-// FreeBSD tcp_stats_kld record layout.
+// FreeBSD tcpstats record layout.
 //
-// Mirrors the C `struct tcp_stats_record` from kmod/tcp_stats_kld/tcp_stats_kld.h.
+// Mirrors the C `struct tcp_stats_record` from kmod/tcpstats/tcp_statsdev.h.
 // This file must be kept in sync with the kernel module header.
 
 /// Fixed record size from the kernel module.

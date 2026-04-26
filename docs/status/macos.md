@@ -27,7 +27,7 @@ The Nix + Protobuf + Rust build pipeline is fully operational. A demo binary com
 - prost-build compiles proto and writes descriptor set
 - pbjson-build generates serde Serialize/Deserialize impls from the descriptor
 - `btree_map(["."])` for deterministic serialization order
-- Generated code included via `include!` macro in `proto_gen::bsd_xtcp` module
+- Generated code included via `include!` macro in `proto_gen::tcpstats_reader` module
 
 ### Issues found and resolved
 
@@ -63,13 +63,13 @@ Three ways to build cross targets, all producing per-target output directories:
 
 | Method | Command | Output |
 |--------|---------|--------|
-| Makefile | `make cross-aarch64-darwin` | `result-cross-aarch64-darwin/bin/bsd-xtcp` |
-| Makefile | `make cross-x86_64-darwin` | `result-cross-x86_64-darwin/bin/bsd-xtcp` |
+| Makefile | `make cross-aarch64-darwin` | `result-cross-aarch64-darwin/bin/tcpstats-reader` |
+| Makefile | `make cross-x86_64-darwin` | `result-cross-x86_64-darwin/bin/tcpstats-reader` |
 | Makefile | `make cross-all` | Both targets |
-| nix run | `nix run .#cross-aarch64-darwin` | `result-cross-aarch64-darwin/bin/bsd-xtcp` |
-| nix run | `nix run .#cross-x86_64-darwin` | `result-cross-x86_64-darwin/bin/bsd-xtcp` |
+| nix run | `nix run .#cross-aarch64-darwin` | `result-cross-aarch64-darwin/bin/tcpstats-reader` |
+| nix run | `nix run .#cross-x86_64-darwin` | `result-cross-x86_64-darwin/bin/tcpstats-reader` |
 | nix run | `nix run .#build-cross-all` | Both targets with separate output dirs |
-| nix build | `nix build .#cross-all` | `result/bin/bsd-xtcp-{x86_64,aarch64}-apple-darwin` |
+| nix build | `nix build .#cross-all` | `result/bin/tcpstats-reader-{x86_64,aarch64}-apple-darwin` |
 
 The `apps` outputs wrap `nix build` with `--out-link result-<target>` so each target gets its own output directory automatically. The `cross-all` package collects all targets into a single output with binaries named by target triple.
 
@@ -84,17 +84,17 @@ The `apps` outputs wrap `nix build` with `--out-link result-<target>` so each ta
 
 ```
 $ nix build .#cross-x86_64-darwin
-$ file ./result/bin/bsd-xtcp
-bsd-xtcp: Mach-O 64-bit x86_64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS|PIE|HAS_TLV_DESCRIPTORS>
+$ file ./result/bin/tcpstats-reader
+tcpstats-reader: Mach-O 64-bit x86_64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS|PIE|HAS_TLV_DESCRIPTORS>
 
-$ scp ./result/bin/bsd-xtcp 172.16.50.135:
-bsd-xtcp                                          100%  613KB  17.3MB/s   00:00
+$ scp ./result/bin/tcpstats-reader 172.16.50.135:
+tcpstats-reader                                          100%  613KB  17.3MB/s   00:00
 
-$ ssh 172.16.50.135 './bsd-xtcp --count 1'
+$ ssh 172.16.50.135 './tcpstats-reader --count 1'
 {"metadata":{"timestampNs":"1772408699298216000","hostname":"dass-MBP.localdomain",
 "platform":"PLATFORM_MACOS","osVersion":"11.7.10","intervalMs":1000,
 "dataSources":["DATA_SOURCE_MACOS_PCBLIST_N"],"collectionDurationNs":"50816",
-"pcblistGeneration":"626","batchSequence":"1","toolVersion":"bsd-xtcp 0.1.0"},
+"pcblistGeneration":"626","batchSequence":"1","toolVersion":"tcpstats-reader 0.1.0"},
 "records":[...7 sockets...],"summary":{"timestampNs":"1772408699298229000",
 "intervalMs":1000,"totalSockets":7,"stateCounts":[{"state":"TCP_STATE_CLOSED","count":7}]}}
 ```
@@ -256,4 +256,4 @@ src/
 | `platform/macos.rs` (enrich) | 8 | TCP_CONNECTION_INFO getsockopt for richer per-socket data |
 | `output/binary.rs` | 9 | Length-delimited binary protobuf output |
 | System summary enrichment | 10 | tcp.stats sysctl for system-wide counters in SystemSummary |
-| FreeBSD platform | 11-15 | pcblist parser, tcp_stats_kld kernel module, kern.file join |
+| FreeBSD platform | 11-15 | pcblist parser, tcpstats kernel module, kern.file join |

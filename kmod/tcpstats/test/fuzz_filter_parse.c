@@ -3,7 +3,7 @@
  *
  * Build with AFL++ (inside nix develop):
  *   afl-clang-fast -o fuzz_filter test/fuzz_filter_parse.c \
- *       tcp_stats_filter_parse.c -I.
+ *       tcp_statsdev_filter.c -I.
  *   mkdir -p seeds findings
  *   echo "local_port=443" > seeds/basic
  *   echo "local_port=443,8443 exclude=listen,timewait" > seeds/combo
@@ -14,7 +14,7 @@
  *
  * Build with libFuzzer (clang):
  *   clang -fsanitize=fuzzer,address -o fuzz_filter \
- *       test/fuzz_filter_parse.c tcp_stats_filter_parse.c -I.
+ *       test/fuzz_filter_parse.c tcp_statsdev_filter.c -I.
  *   ./fuzz_filter -max_len=512 -runs=10000000 corpus/
  */
 
@@ -22,7 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../tcp_stats_filter_parse.h"
+#include "../tcp_statsdev_filter.h"
 
 #ifdef __AFL_FUZZ_TESTCASE_LEN
 /* AFL++ persistent mode */

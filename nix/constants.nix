@@ -1,5 +1,5 @@
 rec {
-  pname = "bsd-xtcp";
+  pname = "tcpstats-reader";
   version = "0.1.0";
 
   # Pinned Rust version — use latest stable available in rust-overlay.
@@ -46,6 +46,10 @@ rec {
     freebsd150 = {
       host = "root@192.168.122.41";
       label = "FreeBSD 15.0";
+    };
+    freebsd144 = {
+      host = "root@192.168.122.85";
+      label = "FreeBSD 14.4";
     };
     freebsd143 = {
       host = "root@192.168.122.27";

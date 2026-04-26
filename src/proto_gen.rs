@@ -1,5 +1,5 @@
 // Include prost-generated code.
-pub mod bsd_xtcp {
-    include!(concat!(env!("OUT_DIR"), "/bsd_xtcp.rs"));
-    include!(concat!(env!("OUT_DIR"), "/bsd_xtcp.serde.rs"));
+pub mod tcpstats_reader {
+    include!(concat!(env!("OUT_DIR"), "/tcpstats_reader.rs"));
+    include!(concat!(env!("OUT_DIR"), "/tcpstats_reader.serde.rs"));
 }

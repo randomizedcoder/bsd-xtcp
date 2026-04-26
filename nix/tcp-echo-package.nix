@@ -28,7 +28,7 @@ rustPlatform.buildRustPackage {
   doCheck = true;
 
   meta = with pkgs.lib; {
-    description = "TCP echo server+client for testing bsd-xtcp socket stats";
+    description = "TCP echo server+client for testing tcpstats-reader socket stats";
     license = licenses.mit;
   };
 }

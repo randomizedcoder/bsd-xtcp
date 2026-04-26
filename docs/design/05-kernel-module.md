@@ -1,6 +1,6 @@
 [← Back to README](../../README.md)
 
-# Kernel Module: `tcp_stats_kld` — System-Wide `tcp_info` Without File Descriptors
+# Kernel Module: `tcpstats` — System-Wide `tcp_info` Without File Descriptors
 
 ## Table of Contents
 
@@ -325,13 +325,13 @@ The module has no `d_write`, no `d_ioctl` that modifies kernel state, and no `d_
 | Race condition between credential check and data read | Credential cached at `open()` time; inpcb read-locked during field extraction; generation count prevents stale data |
 | Denial of service via repeated reads | No kernel allocations per-read beyond one `tcp_stats_record` on stack; iteration is O(N) in socket count, same as existing `tcp_pcblist` |
 | Module used to bypass jail isolation | `prison_check()` inside `cr_canseeinpcb()` enforces jail scoping; module inherits existing jail security model |
-| Attacker loads malicious module masquerading as `tcp_stats_kld` | Module loading requires root + `securelevel < 1`; standard KLD security model |
+| Attacker loads malicious module masquerading as `tcpstats` | Module loading requires root + `securelevel < 1`; standard KLD security model |
 | Leaked sequence numbers enable TCP injection | Sequence numbers are already exposed via `getsockopt(TCP_INFO)` on owned sockets; `tcp_pcblist` does not expose them but root can access via kvm; risk is equivalent to existing attack surface |
 
 ## 11.9 Kernel Module Implementation
 
 ```c
-/* tcp_stats_kld.c — FreeBSD kernel module for system-wide TCP statistics */
+/* tcp_statsdev.c — FreeBSD kernel module for system-wide TCP statistics */
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -574,13 +574,13 @@ tcpstats_modevent(module_t mod, int type, void *data)
             UID_ROOT, GID_WHEEL, 0444, "tcpstats");
         if (tcpstats_dev == NULL)
             return (ENXIO);
-        printf("tcp_stats_kld: loaded, /dev/tcpstats available\n");
+        printf("tcpstats: loaded, /dev/tcpstats available\n");
         return (0);
 
     case MOD_UNLOAD:
         if (tcpstats_dev != NULL)
             destroy_dev(tcpstats_dev);
-        printf("tcp_stats_kld: unloaded\n");
+        printf("tcpstats: unloaded\n");
         return (0);
 
     default:
@@ -588,19 +588,19 @@ tcpstats_modevent(module_t mod, int type, void *data)
     }
 }
 
-DEV_MODULE(tcp_stats_kld, tcpstats_modevent, NULL);
-MODULE_VERSION(tcp_stats_kld, 1);
-MODULE_DEPEND(tcp_stats_kld, kernel, __FreeBSD_version,
+DEV_MODULE(tcpstats, tcpstats_modevent, NULL);
+MODULE_VERSION(tcpstats, 1);
+MODULE_DEPEND(tcpstats, kernel, __FreeBSD_version,
     __FreeBSD_version, __FreeBSD_version);
 ```
 
 ## 11.12 Build System
 
 ```makefile
-# Makefile for tcp_stats_kld kernel module
+# Makefile for tcpstats kernel module
 
-KMOD=   tcp_stats_kld
-SRCS=   tcp_stats_kld.c
+KMOD=   tcpstats
+SRCS=   tcp_statsdev.c
 
 CFLAGS+= -I${SYSDIR}
 
@@ -609,17 +609,17 @@ CFLAGS+= -I${SYSDIR}
 
 ```
 # Build:
-make -C /path/to/tcp_stats_kld SYSDIR=/usr/src/sys
+make -C /path/to/tcpstats SYSDIR=/usr/src/sys
 
 # Load:
-kldload ./tcp_stats_kld.ko
+kldload ./tcpstats.ko
 
 # Verify:
 ls -la /dev/tcpstats
 kldstat | grep tcp_stats
 
 # Unload:
-kldunload tcp_stats_kld
+kldunload tcpstats
 ```
 
 ## 11.13 Userspace Consumer Pattern

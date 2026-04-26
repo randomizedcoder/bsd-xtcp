@@ -1,5 +1,5 @@
 /*
- * test_dos_limits.c -- DoS protection validation for tcp_stats_kld.
+ * test_dos_limits.c -- DoS protection validation for tcpstats.
  *
  * Tests three DoS protections that are hard to validate from a shell script
  * because they require holding fds open or precise signal timing.
@@ -34,7 +34,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "tcp_stats_kld.h"
+#include "tcp_statsdev.h"
 
 #define DEVPATH	     "/dev/tcpstats"
 #define MAX_TEST_FDS 256

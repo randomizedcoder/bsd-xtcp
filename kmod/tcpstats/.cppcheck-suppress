@@ -2,7 +2,7 @@
 missingIncludeSystem
 
 // Kernel module callbacks registered via cdevsw/DECLARE_MODULE — not directly called.
-unusedFunction:tcp_stats_kld.c
+unusedFunction:tcp_statsdev.c
 
 // Fuzzer entry point called by libFuzzer/AFL, not by application code.
 unusedFunction:test/fuzz_filter_parse.c

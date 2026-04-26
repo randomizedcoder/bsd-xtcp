@@ -9,8 +9,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "tcp_stats_kld.h"
-#include "tcp_stats_filter_parse.h"
+#include "tcp_statsdev.h"
+#include "tcp_statsdev_filter.h"
 
 #define READBUF_SIZE (4 * 1024 * 1024) /* 4 MB, ~13000 records max */
 

@@ -1,6 +1,6 @@
 pub mod json;
 
-use crate::proto_gen::bsd_xtcp::BatchMessage;
+use crate::proto_gen::tcpstats_reader::BatchMessage;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

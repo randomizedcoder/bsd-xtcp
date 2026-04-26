@@ -84,8 +84,7 @@ pub struct TargetLog {
 impl TargetLog {
     fn new(parent: &Path, name: &str, run_log: Option<&File>) -> Result<Self> {
         let dir = parent.join(name);
-        fs::create_dir_all(&dir)
-            .with_context(|| format!("create target dir {}", dir.display()))?;
+        fs::create_dir_all(&dir).with_context(|| format!("create target dir {}", dir.display()))?;
 
         let stdout_writer = TimestampedWriter::new(&dir.join("stdout.log"))?;
         let stderr_writer = TimestampedWriter::new(&dir.join("stderr.log"))?;
@@ -193,8 +192,7 @@ impl RunOutput {
 
     fn write_summary_txt(&self) -> Result<()> {
         let path = self.root.join("summary.txt");
-        let mut f = File::create(&path)
-            .with_context(|| format!("create {}", path.display()))?;
+        let mut f = File::create(&path).with_context(|| format!("create {}", path.display()))?;
 
         let total_duration = self.run_start.elapsed().as_secs_f64();
 
@@ -233,10 +231,7 @@ impl RunOutput {
         }
 
         writeln!(f, "{}", "-".repeat(44))?;
-        write!(
-            f,
-            "TOTAL: {targets_passed} passed, {targets_failed} failed"
-        )?;
+        write!(f, "TOTAL: {targets_passed} passed, {targets_failed} failed")?;
         let total_subs = subs_passed + subs_failed;
         if total_subs > 0 {
             write!(
@@ -251,8 +246,7 @@ impl RunOutput {
 
     fn write_summary_json(&self) -> Result<()> {
         let path = self.root.join("summary.json");
-        let mut f = File::create(&path)
-            .with_context(|| format!("create {}", path.display()))?;
+        let mut f = File::create(&path).with_context(|| format!("create {}", path.display()))?;
 
         let total_duration = self.run_start.elapsed().as_secs_f64();
 

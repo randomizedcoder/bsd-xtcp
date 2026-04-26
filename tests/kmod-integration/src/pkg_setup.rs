@@ -13,9 +13,7 @@ pub fn run_pkg_setup() -> Result<()> {
     if !std::path::Path::new("/usr/src/sys/kern").exists() {
         println!("  installing kernel source...");
         let release = run_cmd("sysctl", &["-n", "kern.osrelease"])?;
-        let src_url = format!(
-            "https://download.freebsd.org/releases/amd64/{release}/src.txz"
-        );
+        let src_url = format!("https://download.freebsd.org/releases/amd64/{release}/src.txz");
 
         run_cmd("fetch", &["-o", "/tmp/src.txz", &src_url])?;
         run_cmd("tar", &["-xf", "/tmp/src.txz", "-C", "/"])?;

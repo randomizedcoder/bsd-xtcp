@@ -24,7 +24,7 @@ let
   # 8. Unload kmod (live_* targets only)
   mkIntegrationScript = name: vm: ''
     VM_HOST="''${FREEBSD_HOST:-${vm.host}}"
-    VM_DIR="''${FREEBSD_DIR:-/root/bsd-xtcp}"
+    VM_DIR="''${FREEBSD_DIR:-/root/tcpstats-reader}"
     VM_TARGET="''${INTEGRATION_TARGET:-live_integration}"
     VM_CATEGORY="''${1:-all}"
 
@@ -74,17 +74,17 @@ let
     echo "--- ${name}: building KLD ---"
     case "$VM_TARGET" in
       live_all|live_stats|live_dtrace|live_soak|live_soak_24h|live_soak_48h)
-        ssh "$VM_HOST" "cd $VM_DIR/kmod/tcp_stats_kld && make clean all EXTRA_CFLAGS='-DTCPSTATS_STATS -DTCPSTATS_DTRACE$KMOD_DEBUG_FLAG'"
+        ssh "$VM_HOST" "cd $VM_DIR/kmod/tcpstats && make clean all EXTRA_CFLAGS='-DTCPSTATS_STATS -DTCPSTATS_DTRACE$KMOD_DEBUG_FLAG'"
         ;;
       *)
-        ssh "$VM_HOST" "cd $VM_DIR/kmod/tcp_stats_kld && make clean all EXTRA_CFLAGS='$KMOD_DEBUG_FLAG'"
+        ssh "$VM_HOST" "cd $VM_DIR/kmod/tcpstats && make clean all EXTRA_CFLAGS='$KMOD_DEBUG_FLAG'"
         ;;
     esac
 
     # Load kmod only for live_* targets
     if [[ "$VM_TARGET" == live_* ]]; then
       echo "--- ${name}: loading KLD ---"
-      ssh "$VM_HOST" "kldstat -q -n tcp_stats_kld && kldunload tcp_stats_kld; kldload $VM_DIR/kmod/tcp_stats_kld/tcp_stats_kld.ko"
+      ssh "$VM_HOST" "kldstat -q -n tcpstats && kldunload tcpstats; kldload $VM_DIR/kmod/tcpstats/tcpstats.ko"
 
       # Raise fd limit for concurrent readers
       ssh "$VM_HOST" "sysctl dev.tcpstats.max_open_fds=64" || true
@@ -115,15 +115,15 @@ let
     echo "--- ${name}: running $VM_TARGET (category=$VM_CATEGORY) ---"
     TEST_RC=0
     if [ "$VM_TARGET" = "live_integration" ]; then
-      ssh "''${SSH_OPTS[@]}" "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --category $VM_CATEGORY --tcp-echo $VM_DIR/target/release/tcp-echo --bsd-xtcp $VM_DIR/target/release/bsd-xtcp --kmod-src $VM_DIR/kmod/tcp_stats_kld --exporter $VM_DIR/target/release/tcp-stats-kld-exporter" || TEST_RC=$?
+      ssh "''${SSH_OPTS[@]}" "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --category $VM_CATEGORY --tcp-echo $VM_DIR/target/release/tcp-echo --tcpstats-reader $VM_DIR/target/release/tcpstats-reader --kmod-src $VM_DIR/kmod/tcpstats --exporter $VM_DIR/target/release/tcpstats-exporter" || TEST_RC=$?
     else
-      ssh "''${SSH_OPTS[@]}" "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --tcp-echo $VM_DIR/target/release/tcp-echo --bsd-xtcp $VM_DIR/target/release/bsd-xtcp --kmod-src $VM_DIR/kmod/tcp_stats_kld --exporter $VM_DIR/target/release/tcp-stats-kld-exporter" || TEST_RC=$?
+      ssh "''${SSH_OPTS[@]}" "$VM_HOST" "''${REMOTE_ENV}$VM_DIR/target/release/kmod-integration $VM_TARGET --tcp-echo $VM_DIR/target/release/tcp-echo --tcpstats-reader $VM_DIR/target/release/tcpstats-reader --kmod-src $VM_DIR/kmod/tcpstats --exporter $VM_DIR/target/release/tcpstats-exporter" || TEST_RC=$?
     fi
 
     # Dump kmod debug log if TCPSTATS_DEBUG was enabled
     if [[ "$VM_TARGET" == live_* ]] && [ "''${TCPSTATS_DEBUG:-}" = "1" ]; then
-      echo "--- ${name}: dmesg (tcp_stats_kld debug) ---"
-      ssh "$VM_HOST" "dmesg | grep tcp_stats_kld | tail -200" || true
+      echo "--- ${name}: dmesg (tcpstats debug) ---"
+      ssh "$VM_HOST" "dmesg | grep tcpstats | tail -200" || true
     fi
 
     # Rsync structured test output back to the Linux host
@@ -146,7 +146,7 @@ let
     # Unload kmod only for live_* targets
     if [[ "$VM_TARGET" == live_* ]]; then
       echo "--- ${name}: unloading KLD ---"
-      ssh "$VM_HOST" "kldunload tcp_stats_kld" || true
+      ssh "$VM_HOST" "kldunload tcpstats" || true
     fi
 
     echo "============================================="
@@ -165,7 +165,7 @@ let
   ) constants.freebsdVMs;
 
   # Combined package that iterates all VMs sequentially
-  integration-test-freebsd = pkgs.writeShellApplication {
+  integrationTestFreebsd = pkgs.writeShellApplication {
     name = "integration-test-freebsd";
     runtimeInputs = [ pkgs.rsync pkgs.openssh ];
     excludeShellChecks = [ "SC2029" "SC2053" ];
@@ -211,5 +211,5 @@ let
 
 in
 {
-  inherit integration-test-freebsd;
+  "integration-test-freebsd" = integrationTestFreebsd;
 } // perVmExports

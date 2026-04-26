@@ -45,10 +45,18 @@ pub fn collect_tests(
         trials.extend(named_profiles::tests(tcp_echo, read_tcpstats, output_dir));
     }
     if all || categories.contains(&"H") {
-        trials.extend(concurrent_readers::tests(tcp_echo, read_tcpstats, output_dir));
+        trials.extend(concurrent_readers::tests(
+            tcp_echo,
+            read_tcpstats,
+            output_dir,
+        ));
     }
     if all || categories.contains(&"I") {
-        trials.extend(combinatorial_coverage::tests(tcp_echo, read_tcpstats, output_dir));
+        trials.extend(combinatorial_coverage::tests(
+            tcp_echo,
+            read_tcpstats,
+            output_dir,
+        ));
     }
 
     trials

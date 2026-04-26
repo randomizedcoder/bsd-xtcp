@@ -1,7 +1,7 @@
 { pkgs, src }:
 
 pkgs.stdenvNoCC.mkDerivation {
-  pname = "bsd-xtcp-proto";
+  pname = "tcpstats-reader-proto";
   version = "0.1.0";
   inherit src;
 

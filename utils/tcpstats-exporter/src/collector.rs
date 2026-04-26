@@ -1,6 +1,6 @@
-use bsd_xtcp::sysctl::TcpSysStats;
 use std::collections::BTreeMap;
 use std::time::Instant;
+use tcpstats_reader::sysctl::TcpSysStats;
 
 /// Snapshot of TCP socket state and system-wide counters.
 pub struct Snapshot {
@@ -32,7 +32,7 @@ fn state_name(state: i32) -> &'static str {
 pub fn collect() -> Result<Snapshot, anyhow::Error> {
     let start = Instant::now();
 
-    let result = bsd_xtcp::platform::collect_tcp_sockets()?;
+    let result = tcpstats_reader::platform::collect_tcp_sockets()?;
 
     let mut counts: BTreeMap<&str, u64> = BTreeMap::new();
     for rec in &result.records {
@@ -45,7 +45,7 @@ pub fn collect() -> Result<Snapshot, anyhow::Error> {
         .map(|(k, v)| (k.to_string(), v))
         .collect();
 
-    let sys_stats = bsd_xtcp::sysctl::read_tcp_stats()?;
+    let sys_stats = tcpstats_reader::sysctl::read_tcp_stats()?;
 
     let duration_secs = start.elapsed().as_secs_f64();
 

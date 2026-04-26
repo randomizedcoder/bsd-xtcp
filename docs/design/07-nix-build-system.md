@@ -107,7 +107,7 @@ The Rust binary itself targets macOS APIs (`sysctl`, `libproc`, `getsockopt(TCP_
 ### 15.1 Layout
 
 ```
-bsd-xtcp/
+tcpstats-reader/
 ├── flake.nix                  # Top-level orchestration, imports nix/ modules
 ├── flake.lock                 # Pinned input revisions
 ├── nix/
@@ -131,7 +131,7 @@ Single source of truth for all shared values, following the PCP project's `const
 
 ```nix
 rec {
-  pname = "bsd-xtcp";
+  pname = "tcpstats-reader";
   version = "0.1.0";
 
   rustVersion = "1.93.1";
@@ -270,7 +270,7 @@ The flake is kept lean — it imports `nix/constants.nix`, constructs the toolch
       in
       {
         packages.default = package;
-        packages.bsd-xtcp = package;
+        packages.tcpstats-reader = package;
         packages.proto = proto;
 
         checks = checks;
@@ -310,7 +310,7 @@ pkgs.mkShell {
   };
 
   shellHook = ''
-    echo "bsd-xtcp dev shell — Rust ${constants.rustVersion}"
+    echo "tcpstats-reader dev shell — Rust ${constants.rustVersion}"
     echo "  cargo build        build the binary"
     echo "  cargo clippy       lint"
     echo "  cargo audit        CVE scan"
@@ -384,7 +384,7 @@ Summary of all Nix build targets and their purposes:
 
 | Command | What It Does |
 |---------|--------------|
-| `nix build` | Build the bsd-xtcp Rust binary (`cargo build --release`) |
+| `nix build` | Build the tcpstats-reader Rust binary (`cargo build --release`) |
 | `nix build .#proto` | Validate protobuf definitions compile cleanly |
 | `nix flake check` | Run all checks: clippy, fmt, tests, audit, deny, doc |
 | `nix develop` | Enter dev shell with Rust toolchain + all security/analysis tools |

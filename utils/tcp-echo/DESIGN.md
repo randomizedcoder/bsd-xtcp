@@ -25,7 +25,7 @@
 
 `tcp-echo` is a standalone Rust binary with `server` and `client` subcommands for
 generating known TCP connections with controlled traffic rates. It lets us verify
-bsd-xtcp kernel socket stats against client-measured stats.
+tcpstats-reader kernel socket stats against client-measured stats.
 
 Same pattern as iperf3: single binary, two modes, shared infrastructure.
 
@@ -34,7 +34,7 @@ Same pattern as iperf3: single binary, two modes, shared infrastructure.
 **Single binary with subcommands** (`tcp-echo server ...` / `tcp-echo client ...`).
 
 **Synchronous, thread-per-connection** (no tokio). Up to ~100 connections fits
-comfortably with OS threads. Matches the main bsd-xtcp crate's synchronous style.
+comfortably with OS threads. Matches the main tcpstats-reader crate's synchronous style.
 
 **Dependencies:** `anyhow`, `thiserror`, `libc` only. Hand-rolled CLI parsing
 matching `src/config.rs` style from the main crate.
@@ -167,7 +167,7 @@ Both client and server share the same reporting pattern:
 5. Verify client report shows ~5000 B/s actual rate
 6. Verify connections distributed ~10 per port
 7. Ctrl+C both sides, verify clean shutdown with final summary
-8. Run bsd-xtcp alongside and compare socket 4-tuples and byte counts
+8. Run tcpstats-reader alongside and compare socket 4-tuples and byte counts
 
 ## Platform Notes
 

@@ -8,14 +8,14 @@ use anyhow::Result;
 use chrono::Local;
 
 use crate::framework::check::read_count;
-use crate::framework::process::{ProcessGroup, run_cmd};
+use crate::framework::process::{run_cmd, ProcessGroup};
 use crate::framework::system;
 
 /// Configuration for a soak test run.
 pub struct SoakConfig {
     pub tcp_echo: String,
     pub read_tcpstats: String,
-    pub bsd_xtcp: String,
+    pub tcpstats_reader: String,
     pub kmod_src: String,
     pub duration_hours: u64,
     pub connections: u32,
@@ -57,7 +57,11 @@ pub fn run_soak(config: &SoakConfig, output_dir: Option<&Path>) -> Result<()> {
     };
 
     println!("=== live_soak ===");
-    println!("  duration: {}h ({} cycles)", duration_hours, total_hours * u64::from(cycles_per_hour));
+    println!(
+        "  duration: {}h ({} cycles)",
+        duration_hours,
+        total_hours * u64::from(cycles_per_hour)
+    );
     println!("  connections: {connections}");
     println!("  cycle interval: {}s", cycle_interval.as_secs());
 
@@ -137,7 +141,7 @@ pub fn run_soak(config: &SoakConfig, output_dir: Option<&Path>) -> Result<()> {
             println!("    cycle {cycle:02}: collecting...");
 
             // Collect samples
-            if let Err(e) = collect_tcp_stats_sample(&config.bsd_xtcp, &hour_dir, cycle) {
+            if let Err(e) = collect_tcp_stats_sample(&config.tcpstats_reader, &hour_dir, cycle) {
                 eprintln!("    warn: tcp_stats collection failed: {e}");
             }
 
@@ -196,12 +200,17 @@ pub fn run_soak(config: &SoakConfig, output_dir: Option<&Path>) -> Result<()> {
             let elapsed = cycle_start.elapsed();
             if elapsed < cycle_interval {
                 let remaining = cycle_interval - elapsed;
-                println!("    cycle {cycle:02}: done in {:.1}s, sleeping {:.1}s",
-                    elapsed.as_secs_f64(), remaining.as_secs_f64());
+                println!(
+                    "    cycle {cycle:02}: done in {:.1}s, sleeping {:.1}s",
+                    elapsed.as_secs_f64(),
+                    remaining.as_secs_f64()
+                );
                 thread::sleep(remaining);
             } else {
-                println!("    cycle {cycle:02}: done in {:.1}s (overran interval)",
-                    elapsed.as_secs_f64());
+                println!(
+                    "    cycle {cycle:02}: done in {:.1}s (overran interval)",
+                    elapsed.as_secs_f64()
+                );
             }
         }
 
@@ -216,7 +225,9 @@ pub fn run_soak(config: &SoakConfig, output_dir: Option<&Path>) -> Result<()> {
                 .filter_map(|v| v.as_deref())
                 .collect();
             if is_monotonically_increasing(&vals) {
-                let msg = format!("hour={hour}: M_TCPSTATS memory monotonically increasing — potential leak");
+                let msg = format!(
+                    "hour={hour}: M_TCPSTATS memory monotonically increasing — potential leak"
+                );
                 eprintln!("    WARN: {msg}");
                 all_health_failures.push(msg);
             }
@@ -224,7 +235,10 @@ pub fn run_soak(config: &SoakConfig, output_dir: Option<&Path>) -> Result<()> {
     }
 
     let total_duration = soak_start.elapsed();
-    println!("  soak complete: {:.1}h elapsed", total_duration.as_secs_f64() / 3600.0);
+    println!(
+        "  soak complete: {:.1}h elapsed",
+        total_duration.as_secs_f64() / 3600.0
+    );
 
     // Write final summary
     write_soak_summary(
@@ -242,17 +256,20 @@ pub fn run_soak(config: &SoakConfig, output_dir: Option<&Path>) -> Result<()> {
     if all_health_failures.is_empty() {
         println!("  soak PASSED: no health failures");
     } else {
-        println!("  soak completed with {} health warnings (non-fatal)", all_health_failures.len());
+        println!(
+            "  soak completed with {} health warnings (non-fatal)",
+            all_health_failures.len()
+        );
     }
 
     Ok(())
 }
 
-/// Collect a TCP stats sample using bsd-xtcp.
-fn collect_tcp_stats_sample(bsd_xtcp: &str, hour_dir: &Path, cycle: u32) -> Result<()> {
+/// Collect a TCP stats sample using tcpstats-reader.
+fn collect_tcp_stats_sample(tcpstats_reader: &str, hour_dir: &Path, cycle: u32) -> Result<()> {
     let output_file = hour_dir.join(format!("tcp_stats_{cycle:02}.json"));
 
-    let output = run_cmd(bsd_xtcp, &["--count", "1"])?;
+    let output = run_cmd(tcpstats_reader, &["--count", "1"])?;
 
     let mut f = fs::File::create(&output_file)?;
     f.write_all(output.as_bytes())?;
@@ -319,10 +336,7 @@ fn collect_memory_stats(hour_dir: &Path, cycle: u32) -> Result<String> {
 }
 
 /// Check health: process liveness, connection count, device node.
-fn check_health(
-    procs: &mut ProcessGroup,
-    read_tcpstats: &str,
-) -> Result<HealthCheck> {
+fn check_health(procs: &mut ProcessGroup, read_tcpstats: &str) -> Result<HealthCheck> {
     // Process liveness
     let alive_status = procs.check_alive();
     let dead: Vec<String> = alive_status
@@ -362,7 +376,7 @@ fn write_soak_config(
     writeln!(f, "  \"connections\": {},", config.connections)?;
     writeln!(f, "  \"tcp_echo\": {:?},", config.tcp_echo)?;
     writeln!(f, "  \"read_tcpstats\": {:?},", config.read_tcpstats)?;
-    writeln!(f, "  \"bsd_xtcp\": {:?},", config.bsd_xtcp)?;
+    writeln!(f, "  \"tcpstats_reader\": {:?},", config.tcpstats_reader)?;
     writeln!(f, "  \"kmod_src\": {:?},", config.kmod_src)?;
     writeln!(f, "  \"started_at\": {:?}", Local::now().to_rfc3339())?;
     writeln!(f, "}}")?;
@@ -391,7 +405,11 @@ fn write_hour_summary(hour_dir: &Path, stats: &HourStats) -> Result<()> {
     writeln!(f, "  \"health_failures\": {},", stats.health_failures.len())?;
     writeln!(f, "  \"health_failure_details\": [")?;
     for (i, msg) in stats.health_failures.iter().enumerate() {
-        let comma = if i + 1 < stats.health_failures.len() { "," } else { "" };
+        let comma = if i + 1 < stats.health_failures.len() {
+            ","
+        } else {
+            ""
+        };
         writeln!(f, "    {msg:?}{comma}")?;
     }
     writeln!(f, "  ]")?;
@@ -432,7 +450,11 @@ fn write_soak_summary(
     writeln!(f, "  \"health_failures\": {},", all_health_failures.len())?;
     writeln!(f, "  \"health_failure_details\": [")?;
     for (i, msg) in all_health_failures.iter().enumerate() {
-        let comma = if i + 1 < all_health_failures.len() { "," } else { "" };
+        let comma = if i + 1 < all_health_failures.len() {
+            ","
+        } else {
+            ""
+        };
         writeln!(f, "    {msg:?}{comma}")?;
     }
     writeln!(f, "  ],")?;

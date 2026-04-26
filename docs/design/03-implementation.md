@@ -110,7 +110,7 @@ For `pcblist`, wrap this in a generation-count validation loop (compare header a
 - Implement 1s polling loop with stdout output
 - Result: a working tool that dumps all TCP sockets with state/cwnd/MSS/buffers every second (no RTT yet)
 
-**Phase 2: `tcp_stats_kld` kernel module**
+**Phase 2: `tcpstats` kernel module**
 
 - Implement the kernel module as specified in [Section 11](05-kernel-module.md)
 - Build, test, and load on FreeBSD development host

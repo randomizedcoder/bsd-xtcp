@@ -2,7 +2,7 @@
  * test_filter_parse.c — Userspace unit test harness for the filter parser.
  *
  * Build:
- *   cc -o test_filter_parse test_filter_parse.c ../tcp_stats_filter_parse.c -I..
+ *   cc -o test_filter_parse test_filter_parse.c ../tcp_statsdev_filter.c -I..
  *
  * Run:
  *   ./test_filter_parse
@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
-#include "../tcp_stats_filter_parse.h"
+#include "../tcp_statsdev_filter.h"
 
 /* TCP state constants (matching FreeBSD netinet/tcp_fsm.h) */
 #ifndef TCPS_CLOSED

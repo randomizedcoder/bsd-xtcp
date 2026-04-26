@@ -1,11 +1,15 @@
 use std::path::Path;
 
-use crate::framework::check::{CheckOp, check_count};
+use crate::framework::check::{check_count, CheckOp};
 use crate::framework::process::ProcessGroup;
 
 /// Category C: IP Version Filtering
 /// Tests C01-C06 use simple_tests pattern, C07-C08 need dual-stack setup.
-pub fn tests(tcp_echo: &str, read_tcpstats: &str, output_dir: Option<&Path>) -> Vec<libtest_mimic::Trial> {
+pub fn tests(
+    tcp_echo: &str,
+    read_tcpstats: &str,
+    output_dir: Option<&Path>,
+) -> Vec<libtest_mimic::Trial> {
     let mut trials = Vec::new();
     let output_dir = output_dir.map(|p| p.to_path_buf());
 

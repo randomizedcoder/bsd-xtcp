@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
-use bsd_xtcp::config::Config;
-use bsd_xtcp::convert;
-use bsd_xtcp::output::json::JsonSink;
-use bsd_xtcp::output::OutputSink;
-use bsd_xtcp::platform;
+use tcpstats_reader::config::Config;
+use tcpstats_reader::convert;
+use tcpstats_reader::output::json::JsonSink;
+use tcpstats_reader::output::OutputSink;
+use tcpstats_reader::platform;
 
 fn main() -> Result<()> {
     let config = Config::from_args().map_err(|e| anyhow::anyhow!("{e}"))?;

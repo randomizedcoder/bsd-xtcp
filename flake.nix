@@ -3,13 +3,13 @@
 # Nix outputs:
 #
 #   Packages:
-#     default / bsd-xtcp          Native build for current platform
+#     default / tcpstats-reader          Native build for current platform
 #     tcp-echo                    TCP echo utility for stats verification
 #     proto                       Standalone protobuf schema validation
-#     cross-x86_64-darwin         Cross-compile bsd-xtcp for Intel Mac (Linux host only)
-#     cross-aarch64-darwin        Cross-compile bsd-xtcp for Apple Silicon (Linux host only)
-#     cross-x86_64-freebsd       Cross-compile bsd-xtcp for FreeBSD amd64 (Linux host, Docker)
-#     cross-aarch64-freebsd      Cross-compile bsd-xtcp for FreeBSD aarch64 (Linux host, Docker)
+#     cross-x86_64-darwin         Cross-compile tcpstats-reader for Intel Mac (Linux host only)
+#     cross-aarch64-darwin        Cross-compile tcpstats-reader for Apple Silicon (Linux host only)
+#     cross-x86_64-freebsd       Cross-compile tcpstats-reader for FreeBSD amd64 (Linux host, Docker)
+#     cross-aarch64-freebsd      Cross-compile tcpstats-reader for FreeBSD aarch64 (Linux host, Docker)
 #     cross-all                   All cross targets, binaries named by triple
 #     tcp-echo-cross-x86_64-darwin    Cross-compile tcp-echo for Intel Mac (Linux host only)
 #     tcp-echo-cross-aarch64-darwin   Cross-compile tcp-echo for Apple Silicon (Linux host only)
@@ -30,9 +30,9 @@
 #     kmod-analysis-flawfinder    CWE-oriented source scanner
 #     kmod-analysis-format-check  clang-format style check
 #     kmod-analysis-all           All C static analyzers
-#     bsd-xtcp-freebsd            Deploy + build + test bsd-xtcp on ALL FreeBSD VMs
-#     bsd-xtcp-freebsd150         Deploy + build + test on FreeBSD 15.0 only
-#     bsd-xtcp-freebsd143         Deploy + build + test on FreeBSD 14.3 only
+#     tcpstats-reader-freebsd            Deploy + build + test tcpstats-reader on ALL FreeBSD VMs
+#     tcpstats-reader-freebsd150         Deploy + build + test on FreeBSD 15.0 only
+#     tcpstats-reader-freebsd143         Deploy + build + test on FreeBSD 14.3 only
 #     integration-test-freebsd    Deploy + integration test on ALL FreeBSD VMs
 #     integration-test-freebsd150 Deploy + integration test on FreeBSD 15.0 only
 #     integration-test-freebsd143 Deploy + integration test on FreeBSD 14.3 only
@@ -45,9 +45,9 @@
 #     cross-x86_64-freebsd       nix run .#cross-x86_64-freebsd -> result-cross-x86_64-freebsd/
 #     cross-aarch64-freebsd      nix run .#cross-aarch64-freebsd -> result-cross-aarch64-freebsd/
 #     build-cross-all             nix run .#build-cross-all      -> builds all with separate dirs
-#     bsd-xtcp-freebsd            nix run .#bsd-xtcp-freebsd     -> deploy + test on all VMs
-#     bsd-xtcp-freebsd150         nix run .#bsd-xtcp-freebsd150  -> deploy + test on FreeBSD 15.0
-#     bsd-xtcp-freebsd143         nix run .#bsd-xtcp-freebsd143  -> deploy + test on FreeBSD 14.3
+#     tcpstats-reader-freebsd            nix run .#tcpstats-reader-freebsd     -> deploy + test on all VMs
+#     tcpstats-reader-freebsd150         nix run .#tcpstats-reader-freebsd150  -> deploy + test on FreeBSD 15.0
+#     tcpstats-reader-freebsd143         nix run .#tcpstats-reader-freebsd143  -> deploy + test on FreeBSD 14.3
 #
 #   Checks:
 #     clippy, fmt, test           Parallel CI checks (covers full workspace)
@@ -139,7 +139,7 @@
           inherit pkgs src;
         };
 
-        tcpStatsKldExporter = import ./nix/tcp-stats-kld-exporter-package.nix {
+        tcpstatsExporter = import ./nix/tcpstats-exporter-package.nix {
           inherit pkgs rustPlatform src constants;
         };
 
@@ -202,7 +202,7 @@
 
         # Combined cross-compilation output with all targets (Linux host only).
         crossAll = pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
-          cross-all = pkgs.runCommand "bsd-xtcp-cross-all" {} (
+          cross-all = pkgs.runCommand "tcpstats-reader-cross-all" {} (
             builtins.concatStringsSep "\n" (
               [ "mkdir -p $out/bin" ] ++
               pkgs.lib.mapAttrsToList (name: targetCfg:
@@ -277,9 +277,9 @@
       {
         packages = {
           default = package;
-          bsd-xtcp = package;
+          tcpstats-reader = package;
           tcp-echo = tcpEcho;
-          tcp-stats-kld-exporter = tcpStatsKldExporter;
+          tcpstats-exporter = tcpstatsExporter;
           proto = proto;
         } // kmodTests // kmodAnalysis // freebsdDeploy // freebsdIntegration // exporterDeploy // crossPackages // tcpEchoCrossPackages // crossAll;
 

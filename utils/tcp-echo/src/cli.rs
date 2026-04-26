@@ -271,7 +271,7 @@ fn print_main_usage() {
     eprintln!(
         "Usage: tcp-echo <COMMAND> [OPTIONS]
 
-TCP echo server+client for testing bsd-xtcp socket stats collection.
+TCP echo server+client for testing tcpstats-reader socket stats collection.
 
 Commands:
   server    Start echo server on one or more ports

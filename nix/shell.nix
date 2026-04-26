@@ -58,7 +58,7 @@ pkgs.mkShell {
   };
 
   shellHook = ''
-    echo "bsd-xtcp dev shell — Rust $(rustc --version)"
+    echo "tcpstats-reader dev shell — Rust $(rustc --version)"
     echo "  cargo build        build the binary"
     echo "  cargo clippy       lint"
     echo "  cargo run          run the demo"

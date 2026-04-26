@@ -5,7 +5,7 @@ use std::time::Duration;
 use anyhow::Result;
 
 use crate::framework::exporter::ExporterHandle;
-use crate::framework::process::{ProcessGroup, run_cmd};
+use crate::framework::process::{run_cmd, ProcessGroup};
 use crate::framework::system::{sysctl_set, tune_system};
 
 /// Run DoS protection tests using test_dos_limits binary.

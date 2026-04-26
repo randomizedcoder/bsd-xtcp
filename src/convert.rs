@@ -1,6 +1,6 @@
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
-use crate::proto_gen::bsd_xtcp::DataSource;
-use crate::proto_gen::bsd_xtcp::{
+use crate::proto_gen::tcpstats_reader::DataSource;
+use crate::proto_gen::tcpstats_reader::{
     BatchMessage, CollectionMetadata, IpVersion, Platform, StateBucket, SystemSummary,
     TcpSocketRecord, TcpState,
 };
@@ -163,7 +163,7 @@ pub fn build_metadata(
         collection_duration_ns,
         pcblist_generation: Some(generation),
         batch_sequence,
-        tool_version: format!("bsd-xtcp {}", env!("CARGO_PKG_VERSION")),
+        tool_version: format!("tcpstats-reader {}", env!("CARGO_PKG_VERSION")),
     }
 }
 

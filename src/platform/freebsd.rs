@@ -75,7 +75,9 @@ fn collect_from_kld() -> Result<(Vec<RawSocketRecord>, u64), CollectError> {
     let hint = ver.record_count_hint as usize;
     let capacity = ((hint + hint / 5 + 64) * TCP_STATS_RECORD_SIZE).max(64 * 1024);
     let mut buf = vec![0u8; capacity];
-    let nbytes = file.read(&mut buf).map_err(|e| CollectError::DeviceRead { source: e })?;
+    let nbytes = file
+        .read(&mut buf)
+        .map_err(|e| CollectError::DeviceRead { source: e })?;
     buf.truncate(nbytes);
 
     let records = parse_kld_records(&buf)?;

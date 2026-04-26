@@ -1,13 +1,12 @@
 use std::process::Command;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 
 use super::process::{run_cmd, run_cmd_ok};
 
 /// Read a sysctl value as a string.
 pub fn sysctl_get(name: &str) -> Result<String> {
-    run_cmd("sysctl", &["-n", name])
-        .with_context(|| format!("sysctl get {name}"))
+    run_cmd("sysctl", &["-n", name]).with_context(|| format!("sysctl get {name}"))
 }
 
 /// Read a sysctl value as u64.
@@ -40,20 +39,20 @@ pub fn kmod_build(kmod_src: &str, extra_cflags: Option<&str>) -> Result<()> {
 pub fn kmod_load(kmod_src: &str) -> Result<()> {
     // Unload first if already loaded
     let _ = kmod_unload();
-    let ko = format!("{kmod_src}/tcp_stats_kld.ko");
+    let ko = format!("{kmod_src}/tcpstats.ko");
     run_cmd("kldload", &[&ko])?;
     Ok(())
 }
 
 /// Unload the kernel module.
 pub fn kmod_unload() -> Result<()> {
-    let _ = run_cmd("kldunload", &["tcp_stats_kld"]);
+    let _ = run_cmd("kldunload", &["tcpstats"]);
     Ok(())
 }
 
 /// Check if the kernel module is loaded.
 pub fn kmod_is_loaded() -> Result<bool> {
-    run_cmd_ok("kldstat", &["-q", "-n", "tcp_stats_kld"])
+    run_cmd_ok("kldstat", &["-q", "-n", "tcpstats"])
 }
 
 /// Verify /dev/tcpstats device exists.
@@ -105,10 +104,7 @@ pub fn check_firewall() -> Result<()> {
     }
 
     // Check pf: pfctl -s info
-    if let Ok(output) = Command::new("pfctl")
-        .args(["-s", "info"])
-        .output()
-    {
+    if let Ok(output) = Command::new("pfctl").args(["-s", "info"]).output() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         if output.status.success() && stdout.contains("Status: Enabled") {
             eprintln!("  warn: pf firewall is enabled");
