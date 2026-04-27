@@ -243,6 +243,10 @@ nix run .#integration-test-freebsd143    # FreeBSD 14.3 VM
 | `cross-all` | All cross targets in one output, binaries named by target triple |
 | `integration-test-freebsd150` | Run integration tests on FreeBSD 15.0 VM |
 | `integration-test-freebsd143` | Run integration tests on FreeBSD 14.3 VM |
+| `port-test-freebsd` | Test FreeBSD port build on all 3 VMs |
+| `port-test-freebsd150` | Test FreeBSD port build on FreeBSD 15.0 only |
+| `port-test-freebsd144` | Test FreeBSD port build on FreeBSD 14.4 only |
+| `port-test-freebsd143` | Test FreeBSD port build on FreeBSD 14.3 only |
 
 ## Usage
 
