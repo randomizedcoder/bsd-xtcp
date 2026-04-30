@@ -32,7 +32,7 @@ impl Config {
 
         while i < args.len() {
             match args[i].as_str() {
-                "--interval" => {
+                "--interval" | "-i" => {
                     i += 1;
                     let secs: f64 = args
                         .get(i)
@@ -44,7 +44,7 @@ impl Config {
                     }
                     config.interval = Duration::from_secs_f64(secs);
                 }
-                "--count" => {
+                "--count" | "-c" => {
                     i += 1;
                     config.count = args
                         .get(i)
@@ -52,7 +52,7 @@ impl Config {
                         .parse()
                         .map_err(|e| format!("invalid --count value: {e}"))?;
                 }
-                "--pretty" => {
+                "--pretty" | "-p" => {
                     config.pretty = true;
                 }
                 "--help" | "-h" => {
@@ -77,9 +77,9 @@ fn print_usage() {
 Collect TCP socket statistics from the kernel and output JSON Lines to stdout.
 
 Options:
-  --interval SECS   Collection interval in seconds (default: 1)
-  --count N         Number of collection passes, 0 = infinite (default: 0)
-  --pretty          Pretty-print JSON output
-  --help, -h        Show this help message"
+  -i, --interval SECS   Collection interval in seconds (default: 1)
+  -c, --count N         Number of collection passes, 0 = infinite (default: 0)
+  -p, --pretty          Pretty-print JSON output
+  -h, --help            Show this help message"
     );
 }

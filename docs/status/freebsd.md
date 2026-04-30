@@ -364,6 +364,6 @@ Concurrent reader scaling (10K connections, 5 reads each):
 ### Long-term
 
 - **ARM64 FreeBSD** -- test on aarch64 FreeBSD (Raspberry Pi, AWS Graviton)
-- **Kernel module packaging** -- FreeBSD port/package for `tcpstats` so it can be installed via `pkg install`
+- ~~**Kernel module packaging**~~ -- DONE: `net/tcpstats-kmod` and `net/tcpstats-reader` FreeBSD ports, tested on all 3 VMs. See [port-testing.md](port-testing.md)
 - ~~**DTrace + stats profiling**~~ -- DONE: `live_dtrace` and `live_stats` targets
 - ~~**Live socket filtering benchmarks**~~ -- DONE: `live_bench` target (1K/10K/100K connections)
