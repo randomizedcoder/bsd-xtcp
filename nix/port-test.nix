@@ -5,18 +5,27 @@ let
 
   # Per-VM FreeBSD port build + test script generator.
   #
-  # 1. Ensure ports tree exists on VM
-  # 2. Rsync port files into /usr/ports/net/tcpstats-kmod
-  # 3. Regenerate distinfo (make makesum)
-  # 4. Lint with portlint
-  # 5. Build, stage, verify plist
-  # 6. Install, load kmod, verify /dev/tcpstats
-  # 7. Package and deinstall
-  # 8. Test option variants (DTRACE, STATS)
-  # 9. Rsync distinfo back to host
+  # tcpstats-kmod:
+  #   A. Ensure ports tree exists on VM
+  #   B. Rsync port files into /usr/ports/net/tcpstats-kmod
+  #   C. Regenerate distinfo (make makesum)
+  #   D. Lint with portlint
+  #   E. Build, stage, verify plist
+  #   F. Install, load kmod, verify /dev/tcpstats
+  #   G. Package and deinstall
+  #   H. Test option variants (DTRACE, STATS)
+  #
+  # tcpstats-reader (if port source exists):
+  #   I. Rsync port files into /usr/ports/net/tcpstats-reader
+  #   J. Regenerate distinfo (make makesum)
+  #   K. Build, stage, verify plist
+  #   L. Install, verify binary short flags and man page
+  #   M. Test reader with live kmod (-c 1 -p)
+  #   N. Package and deinstall
   mkPortTestScript = name: vm: ''
     VM_HOST="''${FREEBSD_HOST:-${vm.host}}"
     PORT_SRC="''${PORT_SRC:-../freebsd-ports/net/tcpstats-kmod}"
+    READER_PORT_SRC="''${READER_PORT_SRC:-../freebsd-ports/net/tcpstats-reader}"
 
     echo ""
     echo "============================================="
@@ -203,8 +212,126 @@ let
       fail "build with DTRACE STATS"
     fi
 
-    # Final cleanup
+    # Final kmod cleanup
     ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-kmod && make BATCH=yes clean' || true
+
+    # =========================================================
+    # tcpstats-reader port tests
+    # =========================================================
+
+    if [ -f "$READER_PORT_SRC/Makefile" ]; then
+      echo ""
+      echo "============================================="
+      echo "  ${name}: tcpstats-reader port tests"
+      echo "============================================="
+
+      # --- Phase I: Sync reader port files ---
+      echo ""
+      echo "--- ${name}: syncing tcpstats-reader port files ---"
+      ssh "$VM_HOST" 'mkdir -p /usr/ports/net/tcpstats-reader'
+      rsync -av --delete "$READER_PORT_SRC/" "$VM_HOST:/usr/ports/net/tcpstats-reader/"
+      pass "reader port files synced"
+
+      # --- Phase J: Regenerate reader distinfo ---
+      echo ""
+      echo "--- ${name}: regenerating reader distinfo (make makesum) ---"
+      if ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes makesum'; then
+        pass "reader make makesum"
+      else
+        fail "reader make makesum"
+      fi
+
+      # Rsync updated distinfo back to host
+      echo "--- ${name}: syncing reader distinfo back ---"
+      rsync -av "$VM_HOST:/usr/ports/net/tcpstats-reader/distinfo" "$READER_PORT_SRC/distinfo"
+      pass "reader distinfo synced back"
+
+      # --- Phase K: Build, stage, verify reader ---
+      echo ""
+      echo "--- ${name}: building reader port (make clean stage) ---"
+      if ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes clean && make BATCH=yes stage'; then
+        pass "reader make stage"
+      else
+        fail "reader make stage"
+      fi
+
+      echo "--- ${name}: reader stage-qa ---"
+      if ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes stage-qa'; then
+        pass "reader make stage-qa"
+      else
+        warn "reader make stage-qa had issues"
+      fi
+
+      echo "--- ${name}: reader check-plist ---"
+      if ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes check-plist'; then
+        pass "reader make check-plist"
+      else
+        fail "reader make check-plist"
+      fi
+
+      # --- Phase L: Install reader and verify ---
+      echo ""
+      echo "--- ${name}: installing reader ---"
+      ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes deinstall' 2>/dev/null || true
+      if ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes install'; then
+        pass "reader make install"
+      else
+        fail "reader make install"
+      fi
+
+      echo "--- ${name}: verifying tcpstats-reader binary ---"
+      if ssh "$VM_HOST" 'tcpstats-reader -h 2>&1 | grep -q "\\-c, --count"'; then
+        pass "reader -h shows short flags"
+      else
+        fail "reader -h missing short flags"
+      fi
+
+      echo "--- ${name}: verifying tcpstats-reader man page ---"
+      if ssh "$VM_HOST" 'man -w tcpstats-reader >/dev/null 2>&1'; then
+        pass "reader man page installed"
+      else
+        fail "reader man page missing"
+      fi
+
+      # --- Phase M: Test reader with live kmod ---
+      echo ""
+      echo "--- ${name}: testing reader with live kmod ---"
+      ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-kmod && make BATCH=yes install' || true
+      ssh "$VM_HOST" 'kldstat -q -n tcpstats && kldunload tcpstats || true'
+      ssh "$VM_HOST" 'kldload tcpstats' || true
+      if ssh "$VM_HOST" 'tcpstats-reader -c 1 -p 2>&1 | head -1 | grep -q "{"'; then
+        pass "reader -c 1 -p produces JSON"
+      else
+        warn "reader could not read from /dev/tcpstats (kmod may not be loaded)"
+      fi
+
+      # Cleanup
+      ssh "$VM_HOST" 'kldunload tcpstats || true'
+      ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-kmod && make BATCH=yes deinstall' 2>/dev/null || true
+
+      # --- Phase N: Package and deinstall reader ---
+      echo ""
+      echo "--- ${name}: packaging reader ---"
+      if ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes package'; then
+        pass "reader make package"
+      else
+        warn "reader make package failed"
+      fi
+
+      echo "--- ${name}: deinstalling reader ---"
+      if ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes deinstall'; then
+        pass "reader make deinstall"
+      else
+        warn "reader make deinstall failed"
+      fi
+
+      # Final reader cleanup
+      ssh "$VM_HOST" 'cd /usr/ports/net/tcpstats-reader && make BATCH=yes clean' || true
+
+    else
+      echo ""
+      echo "--- ${name}: skipping tcpstats-reader tests (no port source at $READER_PORT_SRC) ---"
+    fi
 
     # --- Summary ---
     echo ""
